@@ -5,7 +5,7 @@ import dev.fslab.academia.model.LoginRequest
 import dev.fslab.academia.model.LoginResponse
 import dev.fslab.academia.model.RegisterRequest
 import dev.fslab.academia.model.RegisterResponse
-import dev.fslab.academia.model.UserData
+import dev.fslab.academia.model.MeResponse
 import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.POST
@@ -21,7 +21,7 @@ interface AuthApi {
     suspend fun getSession(): GetSessionResponse
 
     @GET("me")
-    suspend fun getProfile(): UserData
+    suspend fun getProfile(): MeResponse
 
     @POST("auth/sign-out")
     suspend fun logout()

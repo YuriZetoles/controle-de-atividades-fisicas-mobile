@@ -19,6 +19,7 @@ import dev.fslab.academia.navigation.Screen
 import dev.fslab.academia.navigation.navigateSafely
 import dev.fslab.academia.navigation.popBackStackSafely
 import dev.fslab.academia.network.CookieManager
+import dev.fslab.academia.model.UserTipo
 import dev.fslab.academia.ui.screens.HomeScreen
 import dev.fslab.academia.ui.screens.aluno.AparelhosScreen
 import dev.fslab.academia.ui.screens.aluno.HistoricoProgressaoScreen
@@ -32,6 +33,7 @@ import dev.fslab.academia.ui.screens.aluno.TreinoDetalheScreen
 import dev.fslab.academia.ui.screens.aluno.TreinoFormScreen
 import dev.fslab.academia.ui.screens.aluno.TreinosScreen
 import dev.fslab.academia.ui.screens.auth.LoginScreen
+import dev.fslab.academia.ui.screens.treinador.TreinadorHomeScreen
 import dev.fslab.academia.ui.theme.AcademiaTheme
 import dev.fslab.academia.ui.viewmodel.AuthState
 import dev.fslab.academia.ui.viewmodel.AuthViewModel
@@ -85,10 +87,14 @@ fun AcademiaApp(
         }
 
         LaunchedEffect(authState) {
-            when (authState) {
+            when (val state = authState) {
                 is AuthState.Success -> {
-                    sessaoViewModel.verificarEmAndamento()
-                    navController.navigate(Screen.Home.route) {
+                    val targetRoute = if (state.user.tipo == UserTipo.TREINADOR) {
+                        Screen.TreinadorHome.route
+                    } else {
+                        Screen.Home.route
+                    }
+                    navController.navigate(targetRoute) {
                         popUpTo(Screen.Login.route) { inclusive = true }
                         launchSingleTop = true
                     }
@@ -121,7 +127,7 @@ fun AcademiaApp(
 
             composable(Screen.Home.route) {
                 HomeScreen(
-                    nome = currentUser?.name.orEmpty(),
+                    nome = currentUser?.name?.substringBefore(" ").orEmpty(),
                     isDarkTheme = isDarkTheme,
                     onToggleTheme = { themeViewModel.toggle() },
                     onLogout = { authViewModel.logout() },
@@ -138,6 +144,17 @@ fun AcademiaApp(
                     onNavigateTab = { route ->
                         navController.navigateSafely(route)
                     }
+                )
+            }
+
+            composable(Screen.TreinadorHome.route) {
+                TreinadorHomeScreen(
+                    nome = currentUser?.name?.substringBefore(" ").orEmpty(),
+                    onOpenCliente = { _ -> },
+                    onOpenClientes = { },
+                    onNavigateTab = { _ -> },
+                    onNotifications = { },
+                    onLogout = { authViewModel.logout() }
                 )
             }
 

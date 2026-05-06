@@ -43,6 +43,7 @@ sealed class Screen(val route: String) {
     }
 
     // Treinador
+    data object TreinadorHome : Screen("treinador_home")
     data object TreinadorAlunos : Screen("treinador_alunos")
     data object TreinadorAlunoDetalhe : Screen("treinador_aluno_detalhe")
     data object TreinadorCriarTreino : Screen("treinador_criar_treino")

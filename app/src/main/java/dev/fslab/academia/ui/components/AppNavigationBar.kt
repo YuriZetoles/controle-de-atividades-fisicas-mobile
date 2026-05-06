@@ -17,6 +17,7 @@ import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import dev.fslab.academia.ui.theme.LocalAcademiaColors
 
@@ -38,12 +39,46 @@ val alunoNavItems = listOf(
 )
 
 val treinadorNavItems = listOf(
-    NavItemData("Início", Icons.Filled.Home, "home"),
-    NavItemData("Alunos", Icons.Filled.Group, "treinador_alunos"),
-    NavItemData("Chat", Icons.AutoMirrored.Filled.Chat, "chat"),
+    NavItemData("Início", Icons.Filled.Home, "treinador_home"),
+    NavItemData("Treinos", Icons.Filled.FitnessCenter, "treinador_criar_treino"),
+    NavItemData("Chat", Icons.Filled.Chat, "chat"),
+    NavItemData("Clientes", Icons.Filled.Group, "treinador_alunos"),
     NavItemData("Perfil", Icons.Filled.Person, "perfil"),
 )
 
+@Composable
+fun TreinadorNavigationBar(
+    selectedIndex: Int,
+    onItemSelected: (Int) -> Unit
+) {
+    val colors = LocalAcademiaColors.current
+
+    NavigationBar(
+        containerColor = colors.surface,
+        contentColor = colors.primary
+    ) {
+        treinadorNavItems.forEachIndexed { index, item ->
+            NavigationBarItem(
+                selected = selectedIndex == index,
+                onClick = { onItemSelected(index) },
+                icon = { Icon(item.icon, contentDescription = item.label) },
+                label = {
+                    Text(
+                        text = item.label,
+                        style = MaterialTheme.typography.labelSmall
+                    )
+                },
+                colors = NavigationBarItemDefaults.colors(
+                    selectedIconColor = colors.primary,
+                    selectedTextColor = colors.primary,
+                    unselectedIconColor = colors.textSecondary,
+                    unselectedTextColor = colors.textSecondary,
+                    indicatorColor = Color.Transparent
+                )
+            )
+        }
+    }
+}
 @Composable
 fun AppNavigationBar(
     items: List<NavItemData>,
