@@ -23,6 +23,7 @@ interface ExercicioApi {
         @Query("grupo_muscular") grupoMuscular: String? = null,
         @Query("tipo_ativacao") tipoAtivacao: String? = null,
         @Query("aluno_id") alunoId: String? = null,
+        @Query("treinador_id") treinadorId: String? = null,
         @Query("escopo") escopo: String? = null,
         @Query("em_uso") emUso: Boolean? = null,
         @Query("ordem_nome") ordemNome: String? = null,

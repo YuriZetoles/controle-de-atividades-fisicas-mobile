@@ -119,3 +119,11 @@ data class CriarTreinoRequest(
     @SerializedName("ordem") val ordem: Int? = null,
     @SerializedName("exercicios") val exercicios: List<TreinoExercicioItemRequest>? = null
 )
+
+data class TreinoDuplicarResponse(
+    @SerializedName("error") val error: Boolean = false,
+    @SerializedName("code") val code: Int? = null,
+    @SerializedName("message") val message: String? = null,
+    @SerializedName("data") val data: List<TreinoData>? = null,
+    @SerializedName("errors") val errors: List<Map<String, Any?>> = emptyList()
+)

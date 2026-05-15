@@ -170,7 +170,9 @@ fun AcademiaApp(
                     nome = currentUser?.name?.substringBefore(" ").orEmpty(),
                     onOpenCliente = { _ -> },
                     onOpenClientes = { },
-                    onNavigateTab = { _ -> },
+                    onNavigateTab = { route ->
+                        navController.navigateSafely(route)
+                    },
                     onNotifications = { },
                     onLogout = { authViewModel.logout() }
                 )
@@ -452,11 +454,30 @@ fun AcademiaApp(
                 )
             }
 
-            composable(Screen.TreinadorCriarTreino.route) {
-                PlaceholderScreen(
-                    titulo = "Criar Treino",
-                    descricao = "Prescrição de treino para aluno — implementação futura",
-                    onBack = { navController.popBackStackSafely() }
+            composable(Screen.TreinadorTreinos.route) {
+                dev.fslab.academia.ui.screens.treinador.TreinadorTreinosScreen(
+                    onNavigateTab = { route -> navController.navigateSafely(route) },
+                    onAbrirDetalhe = { id ->
+                        navController.navigateSafely(Screen.TreinadorTreinoDetalhe.comId(id))
+                    },
+                    onCriar = {
+                        navController.navigateSafely(Screen.TreinoCriar.route)
+                    }
+                )
+            }
+
+            composable(
+                route = Screen.TreinadorTreinoDetalhe.route,
+                arguments = listOf(navArgument("id") { type = NavType.StringType })
+            ) { entry ->
+                val id = entry.arguments?.getString("id").orEmpty()
+                dev.fslab.academia.ui.screens.treinador.TreinadorTreinoDetalheScreen(
+                    treinoId = id,
+                    onBack = { navController.popBackStackSafely() },
+                    onEditar = { tId ->
+                        navController.navigateSafely(Screen.TreinoEditar.comId(tId))
+                    },
+                    onExcluido = { navController.popBackStackSafely() }
                 )
             }
         }

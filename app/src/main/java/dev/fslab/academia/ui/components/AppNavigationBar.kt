@@ -40,7 +40,7 @@ val alunoNavItems = listOf(
 
 val treinadorNavItems = listOf(
     NavItemData("Início", Icons.Filled.Home, "treinador_home"),
-    NavItemData("Treinos", Icons.Filled.FitnessCenter, "treinador_criar_treino"),
+    NavItemData("Treinos", Icons.Filled.FitnessCenter, "treinador_treinos"),
     NavItemData("Chat", Icons.AutoMirrored.Filled.Chat, "chat"),
     NavItemData("Clientes", Icons.Filled.Group, "treinador_alunos"),
     NavItemData("Perfil", Icons.Filled.Person, "perfil"),

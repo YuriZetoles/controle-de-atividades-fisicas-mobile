@@ -57,6 +57,13 @@ sealed interface TreinoReorderUiState {
     data class Error(val message: String) : TreinoReorderUiState
 }
 
+sealed interface TreinoDuplicarUiState {
+    data object Idle : TreinoDuplicarUiState
+    data object Loading : TreinoDuplicarUiState
+    data class Success(val treinos: List<TreinoData>) : TreinoDuplicarUiState
+    data class Error(val message: String) : TreinoDuplicarUiState
+}
+
 data class TreinoFiltros(
     val busca: String = "",
     val diasSemana: Set<DiaSemana> = emptySet(),
@@ -82,6 +89,9 @@ class TreinoViewModel : ViewModel() {
 
     private val _reorderState = MutableStateFlow<TreinoReorderUiState>(TreinoReorderUiState.Idle)
     val reorderState: StateFlow<TreinoReorderUiState> = _reorderState.asStateFlow()
+
+    private val _duplicarState = MutableStateFlow<TreinoDuplicarUiState>(TreinoDuplicarUiState.Idle)
+    val duplicarState: StateFlow<TreinoDuplicarUiState> = _duplicarState.asStateFlow()
 
     fun atualizarFiltros(novo: TreinoFiltros) {
         _filtros.value = novo
@@ -153,6 +163,35 @@ class TreinoViewModel : ViewModel() {
     fun resetSalvar() { _salvarState.value = TreinoSalvarUiState.Idle }
     fun resetDeletar() { _deletarState.value = TreinoDeletarUiState.Idle }
     fun resetReorder() { _reorderState.value = TreinoReorderUiState.Idle }
+    fun resetDuplicar() { _duplicarState.value = TreinoDuplicarUiState.Idle }
+
+    fun duplicarParaCliente(treinoId: String, alunoId: String) {
+        viewModelScope.launch {
+            _duplicarState.value = TreinoDuplicarUiState.Loading
+            try {
+                val json = JSONObject().apply {
+                    put("aluno_id", alunoId)
+                }
+                val body = json.toString().toRequestBody("application/json".toMediaTypeOrNull())
+                val resposta = RetrofitClient.treinoApi.duplicar(treinoId, body)
+                val duplicados = resposta.data
+                if (duplicados != null) {
+                    _duplicarState.value = TreinoDuplicarUiState.Success(duplicados)
+                } else {
+                    _duplicarState.value = TreinoDuplicarUiState.Error(
+                        resposta.message ?: "Falha ao duplicar treino"
+                    )
+                }
+            } catch (e: HttpException) {
+                val apiMsg = e.response()?.errorBody()?.string()?.let(::extractApiErrorMessage)
+                _duplicarState.value = TreinoDuplicarUiState.Error(apiMsg ?: mapHttpError(e.code()))
+            } catch (e: Exception) {
+                _duplicarState.value = TreinoDuplicarUiState.Error(
+                    e.message ?: "Sem conexão com a internet"
+                )
+            }
+        }
+    }
 
     fun reordenar(idsParaOrdem: Map<String, Int>) {
         if (idsParaOrdem.isEmpty()) {

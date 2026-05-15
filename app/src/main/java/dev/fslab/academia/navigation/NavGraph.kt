@@ -46,5 +46,9 @@ sealed class Screen(val route: String) {
     data object TreinadorHome : Screen("treinador_home")
     data object TreinadorAlunos : Screen("treinador_alunos")
     data object TreinadorAlunoDetalhe : Screen("treinador_aluno_detalhe")
+    data object TreinadorTreinos : Screen("treinador_treinos")
+    data object TreinadorTreinoDetalhe : Screen("treinador_treino_detalhe/{id}") {
+        fun comId(id: String) = "treinador_treino_detalhe/$id"
+    }
     data object TreinadorCriarTreino : Screen("treinador_criar_treino")
 }

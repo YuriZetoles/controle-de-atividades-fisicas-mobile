@@ -51,4 +51,10 @@ interface TreinoApi {
         @Path("id") id: String,
         @Query("force") force: Boolean? = null
     ): TreinoDeleteResponse
+
+    @POST("treinos/{id}/duplicar")
+    suspend fun duplicar(
+        @Path("id") id: String,
+        @Body body: RequestBody
+    ): dev.fslab.academia.model.TreinoDuplicarResponse
 }
