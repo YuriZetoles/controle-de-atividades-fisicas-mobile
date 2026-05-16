@@ -39,7 +39,10 @@ import dev.fslab.academia.ui.screens.aluno.TreinoDetalheScreen
 import dev.fslab.academia.ui.screens.aluno.TreinoFormScreen
 import dev.fslab.academia.ui.screens.aluno.TreinosScreen
 import dev.fslab.academia.ui.screens.auth.LoginScreen
+import dev.fslab.academia.ui.screens.treinador.TreinadorAlunosScreen
 import dev.fslab.academia.ui.screens.treinador.TreinadorHomeScreen
+import dev.fslab.academia.ui.screens.treinador.TreinadorTreinoDetalheScreen
+import dev.fslab.academia.ui.screens.treinador.TreinadorTreinosScreen
 import dev.fslab.academia.ui.theme.AcademiaTheme
 import dev.fslab.academia.ui.viewmodel.AuthState
 import dev.fslab.academia.ui.viewmodel.AuthViewModel
@@ -168,8 +171,12 @@ fun AcademiaApp(
             composable(Screen.TreinadorHome.route) {
                 TreinadorHomeScreen(
                     nome = currentUser?.name?.substringBefore(" ").orEmpty(),
-                    onOpenCliente = { _ -> },
-                    onOpenClientes = { },
+                    onOpenCliente = { id ->
+                        navController.navigateSafely(Screen.TreinadorAlunoDetalhe.route)
+                    },
+                    onOpenClientes = {
+                        navController.navigateSafely(Screen.TreinadorAlunos.route)
+                    },
                     onNavigateTab = { route ->
                         navController.navigateSafely(route)
                     },
@@ -439,10 +446,13 @@ fun AcademiaApp(
             }
 
             composable(Screen.TreinadorAlunos.route) {
-                PlaceholderScreen(
-                    titulo = "Alunos",
-                    descricao = "Gestão de alunos — implementação futura",
-                    onBack = { navController.popBackStackSafely() }
+                TreinadorAlunosScreen(
+                    onOpenCliente = { id: String ->
+                        navController.navigateSafely(Screen.TreinadorAlunoDetalhe.route)
+                    },
+                    onNavigateTab = { route: String ->
+                        navController.navigateSafely(route)
+                    }
                 )
             }
 
