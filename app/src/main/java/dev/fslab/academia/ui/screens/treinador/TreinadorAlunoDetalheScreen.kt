@@ -21,19 +21,25 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AddCircle
 import androidx.compose.material.icons.filled.CalendarToday
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.FitnessCenter
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.PersonOff
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -48,6 +54,8 @@ import dev.fslab.academia.model.AlunoData
 import dev.fslab.academia.model.TreinoData
 import dev.fslab.academia.ui.components.AcademiaAppBar
 import dev.fslab.academia.ui.theme.LocalAcademiaColors
+import dev.fslab.academia.ui.viewmodel.TreinoDeletarUiState
+import dev.fslab.academia.ui.viewmodel.TreinoViewModel
 import dev.fslab.academia.ui.viewmodel.TreinadorAlunoDetalheUiState
 import dev.fslab.academia.ui.viewmodel.TreinadorAlunoDetalheViewModel
 import java.time.LocalDate
@@ -64,13 +72,24 @@ fun TreinadorAlunoDetalheScreen(
     onMontarTreino: (String, String) -> Unit,
     onAbrirTreino: (String) -> Unit,
     viewModel: TreinadorAlunoDetalheViewModel = viewModel(),
+    treinoViewModel: TreinoViewModel = viewModel(),
     autoLoad: Boolean = true
 ) {
     val colors = LocalAcademiaColors.current
     val uiState by viewModel.uiState.collectAsState()
+    val deletarState by treinoViewModel.deletarState.collectAsState()
+    val treinoParaExcluir = remember { mutableStateOf<TreinoData?>(null) }
 
     LaunchedEffect(alunoId, autoLoad) {
         if (autoLoad) {
+            viewModel.carregar(alunoId)
+        }
+    }
+
+    LaunchedEffect(deletarState) {
+        if (deletarState is TreinoDeletarUiState.Success) {
+            treinoViewModel.resetDeletar()
+            treinoParaExcluir.value = null
             viewModel.carregar(alunoId)
         }
     }
@@ -114,11 +133,59 @@ fun TreinadorAlunoDetalheScreen(
                     ultimoTreino = state.ultimoTreino,
                     modifier = Modifier.padding(innerPadding),
                     onMontarTreino = { onMontarTreino(state.aluno.id, state.aluno.nome) },
-                    onAbrirTreino = onAbrirTreino
+                    onAbrirTreino = onAbrirTreino,
+                    onExcluirTreino = { treino -> treinoParaExcluir.value = treino }
                 )
             }
             else -> Unit
         }
+    }
+
+    val treinoExcluir = treinoParaExcluir.value
+    if (treinoExcluir != null) {
+        val carregando = deletarState is TreinoDeletarUiState.Loading
+        AlertDialog(
+            onDismissRequest = { if (!carregando) treinoParaExcluir.value = null },
+            containerColor = colors.surface,
+            title = { Text("Excluir treino?", color = colors.textPrimary) },
+            text = {
+                Text(
+                    "Esta ação não pode ser desfeita e removerá o treino deste cliente.",
+                    color = colors.textSecondary
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = { treinoViewModel.deletar(treinoExcluir.id) },
+                    enabled = !carregando,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = colors.error,
+                        contentColor = colors.textOnPrimary
+                    )
+                ) { Text("Excluir") }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = { if (!carregando) treinoParaExcluir.value = null },
+                    enabled = !carregando
+                ) { Text("Cancelar", color = colors.textSecondary) }
+            }
+        )
+    }
+
+    val erroDeletar = deletarState as? TreinoDeletarUiState.Error
+    if (erroDeletar != null) {
+        AlertDialog(
+            onDismissRequest = { treinoViewModel.resetDeletar() },
+            containerColor = colors.surface,
+            title = { Text("Falha ao excluir", color = colors.textPrimary) },
+            text = { Text(erroDeletar.message, color = colors.textSecondary) },
+            confirmButton = {
+                TextButton(onClick = { treinoViewModel.resetDeletar() }) {
+                    Text("OK", color = colors.primary)
+                }
+            }
+        )
     }
 }
 
@@ -130,7 +197,8 @@ private fun AlunoDetalheContent(
     ultimoTreino: LocalDate?,
     modifier: Modifier = Modifier,
     onMontarTreino: () -> Unit,
-    onAbrirTreino: (String) -> Unit
+    onAbrirTreino: (String) -> Unit,
+    onExcluirTreino: (TreinoData) -> Unit
 ) {
     val colors = LocalAcademiaColors.current
     val hoje = LocalDate.now()
@@ -298,7 +366,10 @@ private fun AlunoDetalheContent(
             }
         } else {
             items(treinos) { treino ->
-                TreinoCard(treino = treino)
+                TreinoCard(
+                    treino = treino,
+                    onExcluir = { onExcluirTreino(treino) }
+                )
             }
         }
 
@@ -334,7 +405,10 @@ private fun StatItem(value: String, label: String) {
 }
 
 @Composable
-private fun TreinoCard(treino: TreinoData) {
+private fun TreinoCard(
+    treino: TreinoData,
+    onExcluir: () -> Unit
+) {
     val colors = LocalAcademiaColors.current
     Row(
         modifier = Modifier
@@ -362,6 +436,9 @@ private fun TreinoCard(treino: TreinoData) {
                 fontSize = 11.sp,
                 color = colors.textSecondary
             )
+        }
+        IconButton(onClick = onExcluir) {
+            Icon(Icons.Default.Delete, contentDescription = "Excluir treino", tint = colors.error)
         }
     }
 }
