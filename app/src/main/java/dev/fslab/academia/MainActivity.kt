@@ -39,11 +39,9 @@ import dev.fslab.academia.ui.screens.aluno.TreinoDetalheScreen
 import dev.fslab.academia.ui.screens.aluno.TreinoFormScreen
 import dev.fslab.academia.ui.screens.aluno.TreinosScreen
 import dev.fslab.academia.ui.screens.auth.LoginScreen
-import dev.fslab.academia.ui.screens.treinador.TreinadorAlunoDetalheScreen
-import dev.fslab.academia.ui.screens.treinador.TreinadorAlunosScreen
+import dev.fslab.academia.ui.screens.chat.ChatDetailScreen
+import dev.fslab.academia.ui.screens.chat.ChatScreen
 import dev.fslab.academia.ui.screens.treinador.TreinadorHomeScreen
-import dev.fslab.academia.ui.screens.treinador.TreinadorTreinoDetalheScreen
-import dev.fslab.academia.ui.screens.treinador.TreinadorTreinosScreen
 import dev.fslab.academia.ui.theme.AcademiaTheme
 import dev.fslab.academia.ui.viewmodel.AuthState
 import dev.fslab.academia.ui.viewmodel.AuthViewModel
@@ -172,12 +170,8 @@ fun AcademiaApp(
             composable(Screen.TreinadorHome.route) {
                 TreinadorHomeScreen(
                     nome = currentUser?.name?.substringBefore(" ").orEmpty(),
-                    onOpenCliente = { id ->
-                        navController.navigateSafely(Screen.TreinadorAlunoDetalhe.comId(id))
-                    },
-                    onOpenClientes = {
-                        navController.navigateSafely(Screen.TreinadorAlunos.route)
-                    },
+                    onOpenCliente = { _ -> },
+                    onOpenClientes = { },
                     onNavigateTab = { route ->
                         navController.navigateSafely(route)
                     },
@@ -265,7 +259,7 @@ fun AcademiaApp(
                         navController.navigateSafely(Screen.TreinoDetalhe.comId(id))
                     },
                     onCriar = {
-                        navController.navigateSafely(Screen.TreinoCriar.comAlunoId(null))
+                        navController.navigateSafely(Screen.TreinoCriar.route)
                     }
                 )
             }
@@ -306,23 +300,12 @@ fun AcademiaApp(
                 )
             }
 
-            composable(
-                route = Screen.TreinoCriar.route,
-                arguments = listOf(
-                    navArgument("alunoId") {
-                        type = NavType.StringType
-                        nullable = true
-                        defaultValue = null
-                    }
-                )
-            ) { entry ->
+            composable(Screen.TreinoCriar.route) { entry ->
                 val novoId by entry.savedStateHandle
                     .getStateFlow<String?>("novo_exercicio_id", null)
                     .collectAsState()
-                val alunoId = entry.arguments?.getString("alunoId")
                 TreinoFormScreen(
                     treinoId = null,
-                    alunoId = alunoId,
                     onBack = { navController.popBackStackSafely() },
                     onSalvo = { id ->
                         navController.navigateSafely(Screen.TreinoDetalhe.comId(id))
@@ -434,17 +417,25 @@ fun AcademiaApp(
             }
 
             composable(Screen.Chat.route) {
-                PlaceholderScreen(
-                    titulo = "Chat",
-                    descricao = "Conversa com treinador — implementação futura",
-                    onBack = { navController.popBackStackSafely() }
+                ChatScreen(
+                    userTipo = currentUser?.tipo ?: UserTipo.ALUNO,
+                    onNavigateTab = { route -> navController.navigateSafely(route) },
+                    onOpenConversa = { conversaId ->
+                        navController.navigateSafely(Screen.ChatDetalhe.comId(conversaId))
+                    }
                 )
             }
 
-            composable(Screen.ChatDetalhe.route) {
-                PlaceholderScreen(
-                    titulo = "Conversa",
-                    descricao = "Detalhes da conversa — implementação futura",
+            composable(
+                route = Screen.ChatDetalhe.route,
+                arguments = listOf(navArgument("id") { type = NavType.StringType })
+            ) { entry ->
+                val conversaId = entry.arguments?.getString("id").orEmpty()
+                ChatDetailScreen(
+                    conversaId = conversaId,
+                    userTipo = currentUser?.tipo ?: UserTipo.ALUNO,
+                    title = "Conversa",
+                    showBack = true,
                     onBack = { navController.popBackStackSafely() }
                 )
             }
@@ -458,41 +449,29 @@ fun AcademiaApp(
             }
 
             composable(Screen.TreinadorAlunos.route) {
-                TreinadorAlunosScreen(
-                    onOpenCliente = { id: String ->
-                        navController.navigateSafely(Screen.TreinadorAlunoDetalhe.comId(id))
-                    },
-                    onNavigateTab = { route: String ->
-                        navController.navigateSafely(route)
-                    }
+                PlaceholderScreen(
+                    titulo = "Alunos",
+                    descricao = "Gestão de alunos — implementação futura",
+                    onBack = { navController.popBackStackSafely() }
                 )
             }
 
-            composable(
-                route = Screen.TreinadorAlunoDetalhe.route,
-                arguments = listOf(navArgument("id") { type = NavType.StringType })
-            ) { entry ->
-                val id = entry.arguments?.getString("id").orEmpty()
-                TreinadorAlunoDetalheScreen(
-                    alunoId = id,
-                    onBack = { navController.popBackStackSafely() },
-                    onMontarTreino = { clienteId, clienteNome ->
-                        navController.navigateSafely(Screen.TreinoCriar.comAlunoId(clienteId))
-                    },
-                    onAbrirTreino = { treinoId ->
-                        navController.navigateSafely(Screen.TreinadorTreinoDetalhe.comId(treinoId))
-                    }
+            composable(Screen.TreinadorAlunoDetalhe.route) {
+                PlaceholderScreen(
+                    titulo = "Detalhe do Aluno",
+                    descricao = "Perfil e treinos do aluno — implementação futura",
+                    onBack = { navController.popBackStackSafely() }
                 )
             }
 
             composable(Screen.TreinadorTreinos.route) {
-                TreinadorTreinosScreen(
+                dev.fslab.academia.ui.screens.treinador.TreinadorTreinosScreen(
                     onNavigateTab = { route -> navController.navigateSafely(route) },
                     onAbrirDetalhe = { id ->
                         navController.navigateSafely(Screen.TreinadorTreinoDetalhe.comId(id))
                     },
                     onCriar = {
-                        navController.navigateSafely(Screen.TreinoCriar.comAlunoId(null))
+                        navController.navigateSafely(Screen.TreinoCriar.route)
                     }
                 )
             }
@@ -502,7 +481,7 @@ fun AcademiaApp(
                 arguments = listOf(navArgument("id") { type = NavType.StringType })
             ) { entry ->
                 val id = entry.arguments?.getString("id").orEmpty()
-                TreinadorTreinoDetalheScreen(
+                dev.fslab.academia.ui.screens.treinador.TreinadorTreinoDetalheScreen(
                     treinoId = id,
                     onBack = { navController.popBackStackSafely() },
                     onEditar = { tId ->

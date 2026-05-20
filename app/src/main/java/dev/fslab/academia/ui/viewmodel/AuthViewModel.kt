@@ -7,7 +7,7 @@ import dev.fslab.academia.model.User
 import dev.fslab.academia.model.toUser
 import dev.fslab.academia.network.CookieManager
 import dev.fslab.academia.network.RetrofitClient
-import kotlinx.coroutines.delay
+import dev.fslab.academia.network.SessionStore
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -36,6 +36,7 @@ class AuthViewModel : ViewModel() {
             _authState.value = AuthState.Loading
             try {
                 val response = RetrofitClient.authApi.getSession()
+                SessionStore.setToken(response.session?.token)
                 val user = fetchUser(response.user)
                 if (user != null) {
                     _currentUser.value = user
@@ -63,6 +64,8 @@ class AuthViewModel : ViewModel() {
                     LoginRequest(email = email.trim(), password = password)
                 )
 
+                SessionStore.setToken(response.session?.token)
+
                 val user = fetchUser(response.user)
                 if (user != null) {
                     _currentUser.value = user
@@ -89,6 +92,7 @@ class AuthViewModel : ViewModel() {
                 // Ignora erro de rede no logout — limpa localmente de qualquer forma
             } finally {
                 CookieManager.clearCookies()      // Remove cookie do dispositivo
+                SessionStore.clear()
                 _currentUser.value = null
                 _authState.value = AuthState.Idle
             }
@@ -116,14 +120,9 @@ class AuthViewModel : ViewModel() {
     }
 
     private suspend fun fetchUser(fallback: dev.fslab.academia.model.UserData?): User? {
-        var profile = runCatching { RetrofitClient.authApi.getProfile() }.getOrNull()
-
-        // Se falhou ao buscar perfil (onde tem o tipo do usuário), tenta mais uma vez após um pequeno delay.
-        if (profile == null || profile.data.tipo == null) {
-            delay(500)
-            profile = runCatching { RetrofitClient.authApi.getProfile() }.getOrNull()
-        }
-
+        // Tenta obter o perfil detalhado que contém o 'type_usuario_autenticado'
+        // Adicionando um pequeno delay ou retry se necessário para garantir que o cookie/token foi processado
+        val profile = runCatching { RetrofitClient.authApi.getProfile() }.getOrNull()
         val userData = profile?.data ?: fallback
         return userData?.toUser()
     }
