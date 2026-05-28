@@ -2,6 +2,7 @@ package dev.fslab.academia.ui.screens.auth
 
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -14,7 +15,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
@@ -23,6 +23,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.FitnessCenter
@@ -33,7 +34,7 @@ import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -51,8 +52,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.RadialGradientShader
+import androidx.compose.ui.graphics.Shader
+import androidx.compose.ui.graphics.ShaderBrush
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
@@ -66,20 +71,6 @@ import androidx.compose.ui.unit.sp
 import dev.fslab.academia.ui.theme.AcademiaTheme
 import dev.fslab.academia.ui.theme.LocalAcademiaColors
 
-/**
- * LoginScreen - Tela de autenticação da aplicação Fábrica 4
- *
- * ⚠️ Para o toggle de tema funcionar, gerencie o estado no Activity/NavHost:
- *
- *   var isDark by remember { mutableStateOf(true) }
- *   AcademiaTheme(darkTheme = isDark) {
- *       LoginScreen(
- *           isDarkTheme = isDark,
- *           onToggleTheme = { isDark = !isDark }
- *       )
- *   }
- */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LoginScreen(
     modifier: Modifier = Modifier,
@@ -97,202 +88,166 @@ fun LoginScreen(
     var senha by remember { mutableStateOf("") }
     var senhaVisivel by remember { mutableStateOf(false) }
 
-    // Fade-in ao entrar na tela
     var visible by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) { visible = true }
     val fadeAlpha by animateFloatAsState(
         targetValue = if (visible) 1f else 0f,
-        animationSpec = tween(700),
+        animationSpec = tween(1000),
         label = "fadeIn"
     )
+
+    // Background com Gradiente Radial (Figma 40:3)
+    val backgroundBrush = remember(colors.isDark) {
+        if (colors.isDark) {
+            object : ShaderBrush() {
+                override fun createShader(size: androidx.compose.ui.geometry.Size): Shader {
+                    return RadialGradientShader(
+                        colors = listOf(Color(0xFF131F11), Color(0xFF0F0F0F)),
+                        center = Offset(size.width / 2f, 0f),
+                        radius = size.width * 1.5f
+                    )
+                }
+            }
+        } else {
+            Brush.verticalGradient(listOf(colors.background, colors.surface))
+        }
+    }
 
     Box(
         modifier = modifier
             .fillMaxSize()
-            .background(
-                Brush.verticalGradient(
-                    colors = listOf(
-                        colors.backgroundGradientStart,
-                        colors.backgroundGradientEnd
+            .background(backgroundBrush)
+    ) {
+        // Brilho Neon no topo (Figma 40:5)
+        if (colors.isDark) {
+            Canvas(modifier = Modifier.fillMaxWidth().height(256.dp).alpha(0.15f)) {
+                drawRect(
+                    brush = Brush.verticalGradient(
+                        colors = listOf(colors.primary, Color.Transparent)
                     )
                 )
-            )
-    ) {
-        // ── Conteúdo principal ───────────────────────────────────────
+            }
+        }
+
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
                 .imePadding()
-                .padding(horizontal = 28.dp),
+                .padding(horizontal = 24.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-
-            // ─── Botão alternar tema ─────────────────────────────────
+            // ─── Botão Alternar Tema ─────────────────────────────────
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = 52.dp),
+                    .padding(top = 44.dp),
                 horizontalArrangement = Arrangement.End
             ) {
-                Box(
+                IconButton(
+                    onClick = onToggleTheme,
                     modifier = Modifier
                         .size(40.dp)
                         .clip(CircleShape)
-                        .background(colors.surface.copy(alpha = 0.7f))
-                        .border(1.dp, colors.inputBorder, CircleShape),
-                    contentAlignment = Alignment.Center
+                        .background(colors.surface.copy(alpha = 0.5f))
+                        .border(1.dp, colors.inputBorder.copy(alpha = 0.2f), CircleShape)
                 ) {
-                    IconButton(
-                        onClick = onToggleTheme,
-                        modifier = Modifier.size(40.dp)
-                    ) {
-                        Icon(
-                            imageVector = if (isDarkTheme) Icons.Filled.LightMode else Icons.Filled.DarkMode,
-                            contentDescription = if (isDarkTheme) "Modo claro" else "Modo escuro",
-                            tint = colors.textPrimary,
-                            modifier = Modifier.size(18.dp)
-                        )
-                    }
+                    Icon(
+                        imageVector = if (isDarkTheme) Icons.Filled.LightMode else Icons.Filled.DarkMode,
+                        contentDescription = "Trocar Tema",
+                        tint = colors.textPrimary,
+                        modifier = Modifier.size(20.dp)
+                    )
                 }
             }
 
-            Spacer(modifier = Modifier.height(32.dp))
+            Spacer(modifier = Modifier.height(24.dp))
 
-            // ─── Logo: ícone + nome ───────────────────────────────────
+            // ─── Logo Container (Figma 40:12) ────────────────────────
             Box(
                 modifier = Modifier
-                    .alpha(fadeAlpha)
-                    .size(88.dp)
+                    .size(64.dp)
                     .shadow(
-                        elevation = 24.dp,
-                        shape = RoundedCornerShape(22.dp),
+                        elevation = 20.dp,
+                        shape = RoundedCornerShape(16.dp),
                         ambientColor = colors.primary.copy(alpha = 0.35f),
-                        spotColor = colors.primary.copy(alpha = 0.45f)
+                        spotColor = colors.primary.copy(alpha = 0.35f)
                     )
-                    .clip(RoundedCornerShape(22.dp))
-                    .background(
-                        Brush.linearGradient(
-                            colors = listOf(
-                                colors.primaryDark,
-                                colors.surface
-                            )
-                        )
-                    )
-                    .border(
-                        width = 1.dp,
-                        brush = Brush.linearGradient(
-                            colors = listOf(
-                                colors.primary.copy(alpha = 0.6f),
-                                colors.primary.copy(alpha = 0.2f)
-                            )
-                        ),
-                        shape = RoundedCornerShape(22.dp)
-                    ),
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(colors.primary.copy(alpha = 0.05f))
+                    .border(1.dp, colors.primary.copy(alpha = 0.2f), RoundedCornerShape(16.dp)),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     imageVector = Icons.Filled.FitnessCenter,
-                    contentDescription = "Logo Spotter",
+                    contentDescription = null,
                     tint = colors.primary,
-                    modifier = Modifier.size(44.dp)
+                    modifier = Modifier.size(30.dp)
                 )
             }
 
-            Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(24.dp))
 
-            // ─── Nome do app ──────────────────────────────────────────
+            // ─── App Name (Figma 40:10) ──────────────────────────────
             Text(
                 text = buildAnnotatedString {
-                    withStyle(
-                        SpanStyle(
-                            color = colors.textPrimary,
-                            fontWeight = FontWeight.ExtraBold,
-                            fontSize = 32.sp,
-                            letterSpacing = 3.sp
-                        )
-                    ) { append("Spot") }
-                    withStyle(
-                        SpanStyle(
-                            color = colors.primary,
-                            fontWeight = FontWeight.ExtraBold,
-                            fontSize = 32.sp,
-                            letterSpacing = 3.sp
-                        )
-                    ) { append("ter") }
+                    append("Spot")
+                    withStyle(SpanStyle(color = colors.primary)) {
+                        append("ter")
+                    }
                 },
-                modifier = Modifier.alpha(fadeAlpha)
+                color = colors.textPrimary,
+                fontSize = 30.sp,
+                fontWeight = FontWeight.Bold,
+                letterSpacing = (-0.75).sp
             )
 
-            Spacer(modifier = Modifier.height(6.dp))
-
-            // ─── Slogan ───────────────────────────────────────────────
+            // ─── Slogan (Figma 40:15) ────────────────────────────────
             Text(
                 text = "PROFESSIONAL TRAINING CENTER",
-                color = colors.textSecondary,
-                fontSize = 10.sp,
-                fontWeight = FontWeight.SemiBold,
-                letterSpacing = 3.sp,
-                modifier = Modifier.alpha(fadeAlpha)
+                color = colors.textSecondary.copy(alpha = 0.8f),
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Light,
+                letterSpacing = 0.35.sp,
+                modifier = Modifier.padding(top = 8.dp)
             )
 
-            Spacer(modifier = Modifier.height(48.dp))
+            Spacer(modifier = Modifier.height(64.dp))
 
-            // ─── Card do formulário ───────────────────────────────────
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .alpha(fadeAlpha)
-                    .clip(RoundedCornerShape(24.dp))
-                    .background(colors.surface.copy(alpha = if (colors.isDark) 0.85f else 0.90f))
-                    .border(
-                        width = 1.dp,
-                        color = colors.inputBorder,
-                        shape = RoundedCornerShape(24.dp)
-                    )
-                    .padding(24.dp)
+            // ─── Headline (Figma 40:19) ──────────────────────────────
+            Text(
+                text = "Bem-vindo de volta",
+                color = colors.textPrimary,
+                fontSize = 24.sp,
+                fontWeight = FontWeight.Bold,
+                letterSpacing = (-0.6).sp,
+                modifier = Modifier.padding(bottom = 32.dp)
+            )
+
+            // ─── Formulário ──────────────────────────────────────────
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(20.dp)
             ) {
+                // Campo E-MAIL
                 Column {
-                    // Título do card
-                    Text(
-                        text = "Bem-vindo de volta",
-                        color = colors.textPrimary,
-                        style = MaterialTheme.typography.headlineMedium,
-                        modifier = Modifier
-                            .align(Alignment.CenterHorizontally)
-                            .padding(bottom = 6.dp)
-                    )
-                    Text(
-                        text = "Entre com suas credenciais para continuar",
-                        color = colors.textSecondary,
-                        fontSize = 13.sp,
-                        modifier = Modifier
-                            .align(Alignment.CenterHorizontally)
-                            .padding(bottom = 28.dp)
-                    )
-
-                    // ── E-MAIL ───────────────────────────────────────
                     Text(
                         text = "E-MAIL",
                         color = colors.textSecondary,
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        letterSpacing = 2.sp,
-                        modifier = Modifier.padding(bottom = 8.dp)
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Medium,
+                        modifier = Modifier.padding(bottom = 6.dp)
                     )
-
                     OutlinedTextField(
                         value = email,
                         onValueChange = { email = it },
-                        placeholder = {
-                            Text("seu@email.com", color = colors.mediumGray, fontSize = 14.sp)
-                        },
+                        placeholder = { Text("seu@email.com", color = Color(0xFF525252)) },
                         leadingIcon = {
                             Icon(
                                 Icons.Filled.Email,
-                                contentDescription = "Email",
-                                tint = if (email.isNotEmpty()) colors.primary else colors.textSecondary,
-                                modifier = Modifier.size(20.dp)
+                                contentDescription = null,
+                                tint = if (email.isNotEmpty()) colors.primary else Color(0xFF525252),
+                                modifier = Modifier.size(18.dp)
                             )
                         },
                         modifier = Modifier.fillMaxWidth(),
@@ -300,48 +255,44 @@ fun LoginScreen(
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
                         singleLine = true,
                         colors = OutlinedTextFieldDefaults.colors(
-                            unfocusedBorderColor = colors.inputBorder,
-                            focusedBorderColor = colors.primary.copy(alpha = 0.7f),
-                            unfocusedContainerColor = colors.lightGray,
-                            focusedContainerColor = colors.lightGray,
-                            cursorColor = colors.primary,
-                            focusedTextColor = colors.textInput,
-                            unfocusedTextColor = colors.textInput
+                            unfocusedContainerColor = Color(0xFF1A1C19),
+                            focusedContainerColor = Color(0xFF1A1C19),
+                            unfocusedBorderColor = Color(0xFF262626),
+                            focusedBorderColor = colors.primary.copy(alpha = 0.5f),
+                            focusedTextColor = colors.textPrimary,
+                            unfocusedTextColor = colors.textPrimary,
+                            cursorColor = colors.primary
                         )
                     )
+                }
 
-                    Spacer(modifier = Modifier.height(20.dp))
-
-                    // ── SENHA ─────────────────────────────────────────
+                // Campo SENHA
+                Column {
                     Text(
                         text = "SENHA",
                         color = colors.textSecondary,
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        letterSpacing = 2.sp,
-                        modifier = Modifier.padding(bottom = 8.dp)
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Medium,
+                        modifier = Modifier.padding(bottom = 6.dp)
                     )
-
                     OutlinedTextField(
                         value = senha,
                         onValueChange = { senha = it },
-                        placeholder = {
-                            Text("••••••••", color = colors.mediumGray, fontSize = 14.sp)
-                        },
+                        placeholder = { Text("••••••••", color = Color(0xFF525252)) },
                         leadingIcon = {
                             Icon(
                                 Icons.Filled.Lock,
-                                contentDescription = "Senha",
-                                tint = if (senha.isNotEmpty()) colors.primary else colors.textSecondary,
-                                modifier = Modifier.size(20.dp)
+                                contentDescription = null,
+                                tint = if (senha.isNotEmpty()) colors.primary else Color(0xFF525252),
+                                modifier = Modifier.size(18.dp)
                             )
                         },
                         trailingIcon = {
                             IconButton(onClick = { senhaVisivel = !senhaVisivel }) {
                                 Icon(
                                     imageVector = if (senhaVisivel) Icons.Filled.Visibility else Icons.Filled.VisibilityOff,
-                                    contentDescription = if (senhaVisivel) "Ocultar senha" else "Mostrar senha",
-                                    tint = colors.textSecondary,
+                                    contentDescription = null,
+                                    tint = Color(0xFF525252),
                                     modifier = Modifier.size(20.dp)
                                 )
                             }
@@ -352,78 +303,76 @@ fun LoginScreen(
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
                         singleLine = true,
                         colors = OutlinedTextFieldDefaults.colors(
-                            unfocusedBorderColor = colors.inputBorder,
-                            focusedBorderColor = colors.primary.copy(alpha = 0.7f),
-                            unfocusedContainerColor = colors.lightGray,
-                            focusedContainerColor = colors.lightGray,
-                            cursorColor = colors.primary,
-                            focusedTextColor = colors.textInput,
-                            unfocusedTextColor = colors.textInput
+                            unfocusedContainerColor = Color(0xFF1A1C19),
+                            focusedContainerColor = Color(0xFF1A1C19),
+                            unfocusedBorderColor = Color(0xFF262626),
+                            focusedBorderColor = colors.primary.copy(alpha = 0.5f),
+                            focusedTextColor = colors.textPrimary,
+                            unfocusedTextColor = colors.textPrimary,
+                            cursorColor = colors.primary
                         )
                     )
-
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    // ── Esqueci minha senha ───────────────────────────
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.End
-                    ) {
-                        Text(
-                            text = "Esqueci minha senha",
-                            fontSize = 13.sp,
-                            fontWeight = FontWeight.Medium,
-                            color = colors.primary,
-                            modifier = Modifier.clickable { onEsqueciSenha(email) }
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    // ── Mensagem de erro ───────────────────────────────
-                    if (!errorMessage.isNullOrBlank()) {
-                        Spacer(modifier = Modifier.height(12.dp))
-                        Text(
-                            text = errorMessage,
-                            color = MaterialTheme.colorScheme.error,
-                            fontSize = 13.sp,
-                            fontWeight = FontWeight.Medium
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(32.dp))
-
-                    // ── Botão ENTRAR ──────────────────────────────────
-                    Button(
-                        onClick = { onLogin(email.trim(), senha) },
-                        enabled = !isLoading && email.isNotBlank() && senha.isNotBlank(),
+                    
+                    // Esqueci Senha (Figma 40:48)
+                    Text(
+                        text = "Esqueci minha senha",
+                        color = colors.textSecondary,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Medium,
                         modifier = Modifier
-                            .fillMaxWidth()
-                            .height(56.dp)
-                            .shadow(
-                                elevation = 12.dp,
-                                shape = RoundedCornerShape(14.dp),
-                                ambientColor = colors.primary.copy(alpha = 0.4f),
-                                spotColor = colors.primary.copy(alpha = 0.4f)
-                            ),
-                        shape = RoundedCornerShape(14.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = colors.primary
-                        )
-                    ) {
-                        if (isLoading) {
-                            CircularProgressIndicator(
-                                color = colors.textOnPrimary,
-                                strokeWidth = 2.dp,
-                                modifier = Modifier.size(20.dp)
-                            )
-                        } else {
+                            .align(Alignment.End)
+                            .padding(top = 10.dp)
+                            .clickable { onEsqueciSenha(email) }
+                    )
+                }
+
+                if (!errorMessage.isNullOrBlank()) {
+                    Text(
+                        text = errorMessage,
+                        color = colors.errorText,
+                        fontSize = 13.sp,
+                        modifier = Modifier.align(Alignment.CenterHorizontally)
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // ─── Botão ENTRAR (Figma 40:50) ──────────────────────
+                Button(
+                    onClick = { onLogin(email.trim(), senha) },
+                    enabled = !isLoading,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(56.dp)
+                        .shadow(
+                            elevation = 20.dp,
+                            shape = RoundedCornerShape(12.dp),
+                            ambientColor = colors.primary.copy(alpha = 0.35f),
+                            spotColor = colors.primary.copy(alpha = 0.35f)
+                        ),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = colors.primary,
+                        contentColor = Color.Black
+                    )
+                ) {
+                    if (isLoading) {
+                        CircularProgressIndicator(color = Color.Black, size = 24.dp)
+                    } else {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.Center
+                        ) {
                             Text(
                                 text = "ENTRAR",
-                                color = colors.textOnPrimary,
-                                fontSize = 15.sp,
-                                fontWeight = FontWeight.ExtraBold,
-                                letterSpacing = 2.sp
+                                fontSize = 18.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Spacer(modifier = Modifier.size(8.dp))
+                            Icon(
+                                Icons.AutoMirrored.Filled.ArrowForward,
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp)
                             )
                         }
                     }
@@ -433,43 +382,51 @@ fun LoginScreen(
             Spacer(modifier = Modifier.weight(1f))
             Spacer(modifier = Modifier.height(32.dp))
 
-            // ─── Rodapé ───────────────────────────────────────────────
-            Row(
-                modifier = Modifier
-                    .padding(bottom = 48.dp)
-                    .alpha(fadeAlpha),
-                horizontalArrangement = Arrangement.Center,
-                verticalAlignment = Alignment.CenterVertically
+            // ─── Footer (Figma 40:56) ────────────────────────────────
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Text(
-                    text = "Ainda não é membro?  ",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = colors.textSecondary
+                HorizontalDivider(
+                    modifier = Modifier.fillMaxWidth().padding(bottom = 25.dp),
+                    thickness = 1.dp,
+                    color = Color(0xFF171717)
                 )
-                Text(
-                    text = "Comece agora",
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = colors.primary,
-                    modifier = Modifier.clickable { onRegister() }
-                )
+                Row(
+                    modifier = Modifier.padding(bottom = 32.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Ainda não é membro? ",
+                        color = colors.textSecondary,
+                        fontSize = 14.sp
+                    )
+                    Text(
+                        text = "Comece agora",
+                        color = colors.primary,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.clickable { onRegister() }
+                    )
+                }
             }
         }
     }
 }
 
-@Preview(showBackground = true, showSystemUi = true, name = "Dark Theme")
+@Composable
+fun CircularProgressIndicator(color: Color, size: androidx.compose.ui.unit.Dp) {
+    androidx.compose.material3.CircularProgressIndicator(
+        modifier = Modifier.size(size),
+        color = color,
+        strokeWidth = 2.dp
+    )
+}
+
+@Preview(showBackground = true, showSystemUi = true)
 @Composable
 fun LoginScreenPreview() {
     AcademiaTheme(darkTheme = true) {
-        LoginScreen(isDarkTheme = true)
-    }
-}
-
-@Preview(showBackground = true, showSystemUi = true, name = "Light Theme")
-@Composable
-fun LoginScreenLightPreview() {
-    AcademiaTheme(darkTheme = false) {
-        LoginScreen(isDarkTheme = false)
+        LoginScreen()
     }
 }

@@ -8,10 +8,10 @@
             <InsightsFilterSettings>
               <option name="connection">
                 <ConnectionSetting>
-                  <option name="appId" value="PLACEHOLDER" />
-                  <option name="mobileSdkAppId" value="" />
-                  <option name="projectId" value="" />
-                  <option name="projectNumber" value="" />
+                  <option name="appId" value="dev.fslab.academia" />
+                  <option name="mobileSdkAppId" value="1:772560091614:android:e8cea5e13d4f0a6281054f" />
+                  <option name="projectId" value="spotter-fabrica" />
+                  <option name="projectNumber" value="772560091614" />
                 </ConnectionSetting>
               </option>
               <option name="signal" value="SIGNAL_UNSPECIFIED" />

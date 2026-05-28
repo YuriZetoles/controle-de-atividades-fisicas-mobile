@@ -38,8 +38,9 @@ data class UserData(
     @SerializedName("name") val name: String,
     @SerializedName("email") val email: String,
     @SerializedName("image") val image: String? = null,
-    @SerializedName("type_usuario_autenticado") val tipo: String? = null,
-    @SerializedName("isAdmin") val isAdmin: Boolean? = null
+    @SerializedName("tipo") val tipo: String? = null,
+    @SerializedName("isAdmin") val isAdmin: Boolean? = null,
+    @SerializedName("perfil") val perfil: com.google.gson.JsonElement? = null
 )
 
 data class LoginResponse(

@@ -1,5 +1,7 @@
 package dev.fslab.academia.ui.screens
 
+import android.os.Build
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -35,6 +37,7 @@ import androidx.compose.material.icons.filled.WaterDrop
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
@@ -49,7 +52,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -60,32 +67,52 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil.compose.AsyncImage
+import coil.decode.SvgDecoder
+import coil.request.ImageRequest
+import androidx.compose.ui.platform.LocalContext
+import dev.fslab.academia.R
 import dev.fslab.academia.ui.components.AppNavigationBar
 import dev.fslab.academia.ui.components.MAIS_ROUTE
 import dev.fslab.academia.ui.components.MaisMenuBottomSheet
 import dev.fslab.academia.ui.components.alunoNavItems
 import dev.fslab.academia.ui.theme.AcademiaTheme
 import dev.fslab.academia.ui.theme.LocalAcademiaColors
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
+import java.util.Locale
 
-// ─── Dados mockados ───────────────────────────────────────────────────────────
+// ─── Dados e Utilitários ──────────────────────────────────────────────────────
 
 private data class DiaSemana(val abrev: String, val numero: Int, val hoje: Boolean = false)
 
-private val diasSemana = listOf(
-    DiaSemana("DOM", 10),
-    DiaSemana("SEG", 11),
-    DiaSemana("HOJE", 12, hoje = true),
-    DiaSemana("QUA", 13),
-    DiaSemana("QUI", 14),
-    DiaSemana("SEX", 15),
-)
+@RequiresApi(Build.VERSION_CODES.O)
+private fun generateWeekDays(): List<DiaSemana> {
+    val today = LocalDate.now()
+    val days = mutableListOf<DiaSemana>()
+    val formatter = DateTimeFormatter.ofPattern("EEE", Locale("pt", "BR"))
+    
+    // Gerar 6 dias (2 dias antes, hoje, 3 dias depois) para replicar o design do Figma
+    for (i in -2..3) {
+        val date = today.plusDays(i.toLong())
+        val isToday = i == 0
+        val abrev = if (isToday) "HOJE" else {
+            val formatted = date.format(formatter).uppercase(Locale.getDefault())
+            if (formatted.length > 3) formatted.substring(0, 3) else formatted
+        }.replace(".", "")
+        days.add(DiaSemana(abrev, date.dayOfMonth, isToday))
+    }
+    return days
+}
 
 // ─── HomeScreen ───────────────────────────────────────────────────────────────
 
+@RequiresApi(Build.VERSION_CODES.O)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
     nome: String = "",
+    fotoUrl: String? = null,
     modifier: Modifier = Modifier,
     isDarkTheme: Boolean = true,
     onToggleTheme: () -> Unit = {},
@@ -97,7 +124,10 @@ fun HomeScreen(
     temSessaoAtiva: Boolean = false
 ) {
     val colors = LocalAcademiaColors.current
+    val context = LocalContext.current
     var mostrarMaisMenu by remember { mutableStateOf(false) }
+    
+    val diasSemana = remember { generateWeekDays() }
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
@@ -122,35 +152,31 @@ fun HomeScreen(
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
                 .padding(innerPadding)
-                .padding(horizontal = 20.dp)
+                .padding(horizontal = 24.dp)
         ) {
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
-            // ── Header: avatar + nome + ações ────────────────────────
+            // ── Header: avatar + saudação + streak ────────────────────────
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                // Avatar + saudação
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Box(modifier = Modifier.size(52.dp)) {
-                        Box(
+                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
+                    Box(modifier = Modifier.size(48.dp)) {
+                        AsyncImage(
+                            model = ImageRequest.Builder(context)
+                                .data(fotoUrl ?: R.drawable.no_profile_photo)
+                                .decoderFactory(SvgDecoder.Factory())
+                                .crossfade(true)
+                                .build(),
+                            contentDescription = "Avatar",
                             modifier = Modifier
                                 .fillMaxSize()
                                 .clip(CircleShape)
                                 .background(colors.surface)
-                                .border(2.dp, colors.primary, CircleShape),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                Icons.Filled.Person,
-                                contentDescription = "Avatar",
-                                tint = colors.textSecondary,
-                                modifier = Modifier.size(32.dp)
-                            )
-                        }
-                        // Indicador online
+                                .border(2.dp, colors.primary.copy(alpha = 0.3f), CircleShape)
+                        )
                         Box(
                             modifier = Modifier
                                 .size(12.dp)
@@ -161,31 +187,21 @@ fun HomeScreen(
                         )
                     }
 
-                    Spacer(modifier = Modifier.width(12.dp))
+                    Spacer(modifier = Modifier.width(16.dp))
 
                     Column {
                         Text(
                             text = "BEM-VINDO DE VOLTA",
-                            fontSize = 10.sp,
+                            fontSize = 12.sp,
                             fontWeight = FontWeight.Medium,
                             color = colors.textSecondary,
-                            letterSpacing = 1.sp
+                            letterSpacing = 0.3.sp
                         )
                         Text(
-                            text = "Olá, $nome!",
-                            style = MaterialTheme.typography.headlineLarge,
+                            text = if (nome.isBlank()) "Olá!" else "Olá, $nome",
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.Bold,
                             color = colors.textPrimary
-                        )
-                        Spacer(modifier = Modifier.height(4.dp))
-                        LinearProgressIndicator(
-                            progress = { 0.6f },
-                            modifier = Modifier
-                                .width(100.dp)
-                                .height(5.dp)
-                                .clip(RoundedCornerShape(50)),
-                            color = colors.primary,
-                            trackColor = colors.lightGray,
-                            strokeCap = StrokeCap.Round
                         )
                     }
                 }
@@ -193,15 +209,15 @@ fun HomeScreen(
                 // Ações do header: streak + toggle + logout
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     // Badge streak
                     Row(
                         modifier = Modifier
                             .clip(RoundedCornerShape(20.dp))
-                            .background(colors.surface)
-                            .border(1.dp, colors.primary.copy(alpha = 0.4f), RoundedCornerShape(20.dp))
-                            .padding(horizontal = 10.dp, vertical = 6.dp),
+                            .background(colors.surface.copy(alpha = 0.5f))
+                            .border(1.dp, colors.surface.copy(alpha = 0.1f), RoundedCornerShape(20.dp))
+                            .padding(horizontal = 12.dp, vertical = 6.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Icon(
@@ -210,25 +226,12 @@ fun HomeScreen(
                             tint = colors.primary,
                             modifier = Modifier.size(16.dp)
                         )
-                        Spacer(modifier = Modifier.width(4.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
                         Text(
-                            text = "15",
-                            fontSize = 13.sp,
+                            text = "15 Dias",
+                            fontSize = 14.sp,
                             fontWeight = FontWeight.Bold,
-                            color = colors.textPrimary
-                        )
-                    }
-
-                    // Toggle tema
-                    IconButton(
-                        onClick = onToggleTheme,
-                        modifier = Modifier.size(36.dp)
-                    ) {
-                        Icon(
-                            imageVector = if (isDarkTheme) Icons.Filled.LightMode else Icons.Filled.DarkMode,
-                            contentDescription = if (isDarkTheme) "Modo claro" else "Modo escuro",
-                            tint = colors.textSecondary,
-                            modifier = Modifier.size(20.dp)
+                            color = colors.primary
                         )
                     }
 
@@ -247,48 +250,69 @@ fun HomeScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(32.dp))
 
             // ── Calendário semanal ───────────────────────────────────
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
                 diasSemana.forEach { dia ->
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
+                    val isHoje = dia.hoje
+                    Box(
                         modifier = Modifier
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(if (dia.hoje) colors.primary else colors.surface)
-                            .padding(horizontal = 10.dp, vertical = 8.dp)
+                            .size(width = if (isHoje) 62.dp else 56.dp, height = if (isHoje) 88.dp else 80.dp),
+                        contentAlignment = Alignment.Center
                     ) {
-                        Text(
-                            text = dia.abrev,
-                            fontSize = 10.sp,
-                            fontWeight = FontWeight.Medium,
-                            color = if (dia.hoje) colors.textOnPrimary else colors.textSecondary
-                        )
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            text = "${dia.numero}",
-                            fontSize = 18.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = if (dia.hoje) colors.textOnPrimary else colors.textPrimary
-                        )
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Box(
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.Center,
                             modifier = Modifier
-                                .size(5.dp)
-                                .clip(CircleShape)
-                                .background(
-                                    if (dia.hoje) colors.textOnPrimary else Color.Transparent
+                                .fillMaxSize()
+                                .shadow(
+                                    elevation = if (isHoje) 15.dp else 0.dp,
+                                    shape = RoundedCornerShape(16.dp),
+                                    ambientColor = colors.primary.copy(alpha = 0.3f),
+                                    spotColor = colors.primary.copy(alpha = 0.3f)
                                 )
-                        )
+                                .clip(RoundedCornerShape(16.dp))
+                                .background(if (isHoje) colors.primary else colors.surface.copy(alpha = 0.5f))
+                                .border(
+                                    width = 1.dp,
+                                    color = if (isHoje) Color.Transparent else colors.surface.copy(alpha = 0.1f),
+                                    shape = RoundedCornerShape(16.dp)
+                                )
+                                .padding(vertical = 12.dp)
+                        ) {
+                            Text(
+                                text = dia.abrev,
+                                fontSize = 12.sp,
+                                fontWeight = if (isHoje) FontWeight.Bold else FontWeight.Medium,
+                                color = if (isHoje) Color(0xFF0F0F0F).copy(alpha = 0.8f) else colors.textSecondary
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                text = "${dia.numero}",
+                                fontSize = if (isHoje) 24.sp else 18.sp,
+                                fontWeight = if (isHoje) FontWeight.ExtraBold else FontWeight.Bold,
+                                color = if (isHoje) Color(0xFF0F0F0F) else colors.textSecondary
+                            )
+                            if (isHoje) {
+                                Spacer(modifier = Modifier.height(6.dp))
+                                Box(
+                                    modifier = Modifier
+                                        .size(6.dp)
+                                        .clip(CircleShape)
+                                        .background(Color.Black)
+                                )
+                            }
+                        }
                     }
                 }
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(32.dp))
 
             // ── Banner sessão em andamento ───────────────────────────
             if (temSessaoAtiva) {
@@ -336,162 +360,203 @@ fun HomeScreen(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(20.dp))
-                    .background(colors.surface)
-                    .border(1.dp, colors.primary.copy(alpha = 0.5f), RoundedCornerShape(20.dp))
-                    .padding(20.dp)
+                    .padding(bottom = 16.dp)
             ) {
-                Column {
+                // Brilho de fundo
+                Box(
+                    modifier = Modifier
+                        .matchParentSize()
+                        .padding(4.dp)
+                        .blur(8.dp)
+                        .background(
+                            brush = Brush.linearGradient(
+                                colors = listOf(colors.primary, colors.primary.copy(alpha = 0.2f))
+                            ),
+                            shape = RoundedCornerShape(24.dp)
+                        )
+                        .alpha(0.3f)
+                )
+
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(24.dp))
+                        .background(colors.surface)
+                        .border(1.dp, colors.primary.copy(alpha = 0.5f), RoundedCornerShape(24.dp))
+                        .padding(24.dp)
+                ) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
+                        verticalAlignment = Alignment.Top
                     ) {
-                        // Badge "TREINO B"
-                        Box(
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(8.dp))
-                                .background(colors.primary.copy(alpha = 0.15f))
-                                .border(1.dp, colors.primary.copy(alpha = 0.5f), RoundedCornerShape(8.dp))
-                                .padding(horizontal = 10.dp, vertical = 4.dp)
-                        ) {
+                        Column {
+                            // Badge "TREINO B"
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(colors.primary.copy(alpha = 0.1f))
+                                    .border(1.dp, colors.primary.copy(alpha = 0.2f), RoundedCornerShape(8.dp))
+                                    .padding(horizontal = 12.dp, vertical = 6.dp)
+                            ) {
+                                Text(
+                                    text = "TREINO B",
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = colors.primary,
+                                    letterSpacing = 0.6.sp
+                                )
+                            }
+                            Spacer(modifier = Modifier.height(12.dp))
                             Text(
-                                text = "TREINO B",
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.Bold,
+                                text = "Peito e",
+                                fontSize = 30.sp,
+                                fontWeight = FontWeight.ExtraBold,
+                                color = colors.textPrimary,
+                                lineHeight = 36.sp
+                            )
+                            Text(
+                                text = "Tríceps",
+                                fontSize = 30.sp,
+                                fontWeight = FontWeight.ExtraBold,
                                 color = colors.primary,
-                                letterSpacing = 1.sp
+                                lineHeight = 36.sp
                             )
                         }
 
+                        // Ícone superior direito
                         Box(
                             modifier = Modifier
-                                .size(38.dp)
+                                .size(48.dp)
                                 .clip(CircleShape)
-                                .background(colors.primary.copy(alpha = 0.15f)),
+                                .background(colors.primary.copy(alpha = 0.1f))
+                                .border(1.dp, colors.primary.copy(alpha = 0.2f), CircleShape),
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
                                 Icons.Filled.FitnessCenter,
                                 contentDescription = null,
                                 tint = colors.primary,
-                                modifier = Modifier.size(20.dp)
+                                modifier = Modifier.size(24.dp)
                             )
                         }
                     }
 
-                    Spacer(modifier = Modifier.height(12.dp))
+                    Spacer(modifier = Modifier.height(24.dp))
 
-                    Text(
-                        text = buildAnnotatedString {
-                            withStyle(SpanStyle(color = colors.textPrimary, fontWeight = FontWeight.ExtraBold, fontSize = 28.sp)) {
-                                append("Peito e\n")
-                            }
-                            withStyle(SpanStyle(color = colors.primary, fontWeight = FontWeight.ExtraBold, fontSize = 28.sp)) {
-                                append("Tríceps")
-                            }
-                        }
-                    )
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    // Estatísticas rápidas do treino
+                    // Duração & Intensidade
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        horizontalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
-                        listOf(
-                            Triple(Icons.Filled.Timer, "Duração", "60 min"),
-                            Triple(Icons.Filled.LocalFireDepartment, "Intensidade", "Alta"),
-                            Triple(Icons.Filled.FitnessCenter, "Exercícios", "8")
-                        ).forEach { (icon, label, valor) ->
-                            Column(
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .clip(RoundedCornerShape(10.dp))
-                                    .background(colors.lightGray)
-                                    .padding(10.dp)
-                            ) {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Icon(
-                                        icon,
-                                        contentDescription = null,
-                                        tint = colors.textSecondary,
-                                        modifier = Modifier.size(12.dp)
-                                    )
-                                    Spacer(modifier = Modifier.width(3.dp))
-                                    Text(
-                                        text = label,
-                                        fontSize = 10.sp,
-                                        color = colors.textSecondary
-                                    )
-                                }
-                                Spacer(modifier = Modifier.height(4.dp))
-                                Text(
-                                    text = valor,
-                                    fontSize = 14.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = colors.textPrimary
-                                )
+                        // Duração
+                        Row(
+                            modifier = Modifier
+                                .weight(1f)
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(colors.surface.copy(alpha = 0.5f))
+                                .border(1.dp, colors.inputBorder.copy(alpha = 0.2f), RoundedCornerShape(12.dp))
+                                .padding(12.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                Icons.Filled.Timer,
+                                contentDescription = null,
+                                tint = colors.textSecondary,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Column {
+                                Text(text = "Duração", fontSize = 12.sp, color = colors.textSecondary)
+                                Text(text = "60 min", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = colors.textPrimary)
+                            }
+                        }
+
+                        // Intensidade
+                        Row(
+                            modifier = Modifier
+                                .weight(1f)
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(colors.surface.copy(alpha = 0.5f))
+                                .border(1.dp, colors.inputBorder.copy(alpha = 0.2f), RoundedCornerShape(12.dp))
+                                .padding(12.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                Icons.Filled.LocalFireDepartment,
+                                contentDescription = null,
+                                tint = colors.textSecondary,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Column {
+                                Text(text = "Intensidade", fontSize = 12.sp, color = colors.textSecondary)
+                                Text(text = "Alta", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = colors.textPrimary)
                             }
                         }
                     }
 
-                    Spacer(modifier = Modifier.height(16.dp))
+                    Spacer(modifier = Modifier.height(24.dp))
 
+                    // Progresso Semanal
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text(text = "Progresso Semanal", fontSize = 12.sp, color = colors.textSecondary)
-                        Text(text = "2/5 Concluídos", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = colors.primary)
+                        Text(text = "Progresso Semanal", fontSize = 12.sp, fontWeight = FontWeight.Medium, color = colors.textSecondary)
+                        Text(text = "2/5 Concluídos", fontSize = 12.sp, fontWeight = FontWeight.Medium, color = colors.primary)
                     }
-                    Spacer(modifier = Modifier.height(6.dp))
+                    Spacer(modifier = Modifier.height(8.dp))
                     LinearProgressIndicator(
                         progress = { 2f / 5f },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(6.dp)
+                            .height(8.dp)
                             .clip(RoundedCornerShape(50)),
                         color = colors.primary,
-                        trackColor = colors.lightGray,
+                        trackColor = colors.surface.copy(alpha = 0.5f),
                         strokeCap = StrokeCap.Round
                     )
 
-                    Spacer(modifier = Modifier.height(20.dp))
+                    Spacer(modifier = Modifier.height(32.dp))
 
-                    // Botão INICIAR TREINO
+                    // Botão Iniciar Treino
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clip(RoundedCornerShape(14.dp))
+                            .height(56.dp)
+                            .shadow(
+                                elevation = 15.dp,
+                                shape = RoundedCornerShape(12.dp),
+                                ambientColor = colors.primary.copy(alpha = 0.3f),
+                                spotColor = colors.primary.copy(alpha = 0.3f)
+                            )
+                            .clip(RoundedCornerShape(12.dp))
                             .background(colors.primary)
-                            .clickable { }
-                            .padding(vertical = 16.dp),
+                            .clickable { },
                         contentAlignment = Alignment.Center
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(
                                 Icons.Filled.PlayArrow,
                                 contentDescription = null,
-                                tint = colors.textOnPrimary,
-                                modifier = Modifier.size(20.dp)
+                                tint = Color(0xFF0F0F0F),
+                                modifier = Modifier.size(24.dp)
                             )
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(
                                 text = "INICIAR TREINO",
-                                fontSize = 15.sp,
+                                fontSize = 18.sp,
                                 fontWeight = FontWeight.ExtraBold,
-                                letterSpacing = 2.sp,
-                                color = colors.textOnPrimary
+                                color = Color(0xFF0F0F0F)
                             )
                         }
                     }
                 }
             }
 
-            Spacer(modifier = Modifier.height(28.dp))
+            Spacer(modifier = Modifier.height(24.dp))
 
             // ── Recado do Treinador ──────────────────────────────────
             Row(
@@ -501,7 +566,8 @@ fun HomeScreen(
             ) {
                 Text(
                     text = "Recado do Treinador",
-                    style = MaterialTheme.typography.headlineSmall,
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold,
                     color = colors.textPrimary
                 )
                 Text(
@@ -509,40 +575,40 @@ fun HomeScreen(
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Bold,
                     color = colors.primary,
-                    letterSpacing = 1.sp,
                     modifier = Modifier.clickable { }
                 )
             }
 
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(16.dp))
-                    .background(colors.surface)
-                    .padding(16.dp),
+                    .background(colors.surface.copy(alpha = 0.5f))
+                    .border(1.dp, colors.inputBorder.copy(alpha = 0.1f), RoundedCornerShape(16.dp))
+                    .padding(20.dp),
                 verticalAlignment = Alignment.Top
             ) {
-                Box(modifier = Modifier.size(46.dp)) {
+                Box(modifier = Modifier.size(48.dp)) {
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
-                            .clip(CircleShape)
+                            .clip(RoundedCornerShape(12.dp))
                             .background(colors.lightGray)
-                            .border(2.dp, colors.primary.copy(alpha = 0.4f), CircleShape),
+                            .border(1.dp, colors.inputBorder.copy(alpha = 0.2f), RoundedCornerShape(12.dp)),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
                             Icons.Filled.Person,
                             contentDescription = null,
                             tint = colors.textSecondary,
-                            modifier = Modifier.size(28.dp)
+                            modifier = Modifier.size(32.dp)
                         )
                     }
                     Box(
                         modifier = Modifier
-                            .size(10.dp)
+                            .size(14.dp)
                             .clip(CircleShape)
                             .background(colors.primary)
                             .border(2.dp, colors.surface, CircleShape)
@@ -550,12 +616,13 @@ fun HomeScreen(
                     )
                 }
 
-                Spacer(modifier = Modifier.width(12.dp))
+                Spacer(modifier = Modifier.width(16.dp))
 
                 Column(modifier = Modifier.weight(1f)) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
                             text = "Treinador Marcos",
@@ -563,64 +630,65 @@ fun HomeScreen(
                             fontWeight = FontWeight.Bold,
                             color = colors.textPrimary
                         )
-                        Text(text = "10:30", fontSize = 12.sp, color = colors.textSecondary)
+                        Text(text = "10:30", fontSize = 10.sp, fontWeight = FontWeight.Medium, color = colors.textSecondary)
                     }
-                    Spacer(modifier = Modifier.height(6.dp))
+                    Spacer(modifier = Modifier.height(8.dp))
                     Text(
-                        text = "Fala Lucas! Hoje é dia de aumentar a carga no supino. Foca na descida controlada (3s). Bom treino! 👊",
-                        fontSize = 13.sp,
-                        color = colors.textSecondary,
-                        lineHeight = 20.sp
+                        text = "Fala Lucas! Hoje é dia de aumentar a carga no supino. Foca na descida controlada (3s). Bom treino! \uD83D\uDC4A",
+                        fontSize = 14.sp,
+                        color = colors.textPrimary.copy(alpha = 0.8f),
+                        lineHeight = 22.sp
                     )
                 }
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(32.dp))
 
             // ── Quick Actions ────────────────────────────────────────
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                horizontalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 listOf(
                     Triple(Icons.Filled.Scale, "Registrar Peso", colors.primary),
-                    Triple(Icons.Filled.WaterDrop, "Beber Água", colors.featureCyan)
+                    Triple(Icons.Filled.WaterDrop, "Beber Água", colors.featureBlue) // Usando featureBlue
                 ).forEach { (icon, label, iconColor) ->
                     Column(
                         modifier = Modifier
                             .weight(1f)
                             .clip(RoundedCornerShape(16.dp))
-                            .background(colors.surface)
+                            .background(colors.surface.copy(alpha = 0.5f))
+                            .border(1.dp, colors.inputBorder.copy(alpha = 0.1f), RoundedCornerShape(16.dp))
                             .clickable { }
-                            .padding(20.dp),
+                            .padding(16.dp),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Box(
                             modifier = Modifier
-                                .size(48.dp)
-                                .clip(RoundedCornerShape(12.dp))
-                                .background(iconColor.copy(alpha = 0.15f)),
+                                .size(40.dp)
+                                .clip(CircleShape)
+                                .background(iconColor.copy(alpha = 0.2f)),
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
                                 icon,
                                 contentDescription = null,
                                 tint = iconColor,
-                                modifier = Modifier.size(26.dp)
+                                modifier = Modifier.size(20.dp)
                             )
                         }
-                        Spacer(modifier = Modifier.height(10.dp))
+                        Spacer(modifier = Modifier.height(12.dp))
                         Text(
                             text = label,
-                            fontSize = 13.sp,
-                            fontWeight = FontWeight.Medium,
-                            color = colors.textPrimary
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = colors.textPrimary.copy(alpha = 0.8f)
                         )
                     }
                 }
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(48.dp))
         }
     }
 
@@ -632,6 +700,7 @@ fun HomeScreen(
     }
 }
 
+@RequiresApi(Build.VERSION_CODES.O)
 @Preview(showBackground = true, showSystemUi = true, name = "Dark Theme")
 @Composable
 fun TelaInicialDarkPreview() {
@@ -640,6 +709,7 @@ fun TelaInicialDarkPreview() {
     }
 }
 
+@RequiresApi(Build.VERSION_CODES.O)
 @Preview(showBackground = true, showSystemUi = true, name = "Light Theme")
 @Composable
 fun TelaInicialLightPreview() {
