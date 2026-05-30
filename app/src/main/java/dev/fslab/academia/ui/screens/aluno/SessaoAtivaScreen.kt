@@ -60,6 +60,7 @@ import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.activity.compose.BackHandler
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
@@ -237,6 +238,10 @@ private fun ExecucaoSessao(
 
     var mostrarDialogCancelar by remember { mutableStateOf(false) }
     var mostrarDialogFinalizar by remember { mutableStateOf(false) }
+
+    BackHandler(enabled = true) {
+        mostrarDialogCancelar = true
+    }
 
     val concluidos = exerciciosOrdenados.count { it.concluido }
     val total = exerciciosOrdenados.size
