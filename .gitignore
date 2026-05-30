@@ -13,3 +13,19 @@
 .externalNativeBuild
 .cxx
 local.properties
+screens2
+CLAUDE.md
+skills
+plugin.json
+.superpowers/
+
+# Firebase — nunca commitar
+app/google-services.json
+google-services.json
+
+# Documentação local / planos 
+docs/
+documentacao2/
+
+# Kotlin internals (cobertura extra além de /build)
+*.kotlin_module
