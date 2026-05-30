@@ -245,6 +245,8 @@ private fun ExecucaoSessao(
 
     val concluidos = exerciciosOrdenados.count { it.concluido }
     val total = exerciciosOrdenados.size
+    val totalSeries = sessao.exercicios.sumOf { it.template.series }
+    val seriesConcluidas = sessao.exercicios.sumOf { ex -> ex.series.count { it.status == "CONCLUIDA" } }
 
     LaunchedEffect(seriesState) {
         if (seriesState is SessaoSeriesUiState.Success) {
@@ -315,14 +317,33 @@ private fun ExecucaoSessao(
                 .background(Brush.verticalGradient(listOf(colors.backgroundGradientStart, colors.backgroundGradientEnd)))
                 .padding(innerPadding)
         ) {
-            // Barra de progresso
-            LinearProgressIndicator(
-                progress = { if (total > 0) concluidos.toFloat() / total else 0f },
-                modifier = Modifier.fillMaxWidth().height(3.dp),
-                color = colors.primary,
-                trackColor = colors.lightGray,
-                strokeCap = StrokeCap.Round
-            )
+            Column {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 4.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        "Exercício ${exercicioIndex + 1} de $total",
+                        color = colors.textSecondary,
+                        style = MaterialTheme.typography.labelSmall
+                    )
+                    Text(
+                        "$seriesConcluidas/$totalSeries séries",
+                        color = colors.primary,
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+                LinearProgressIndicator(
+                    progress = { if (total > 0) concluidos.toFloat() / total else 0f },
+                    modifier = Modifier.fillMaxWidth().height(4.dp),
+                    color = colors.primary,
+                    trackColor = colors.lightGray,
+                    strokeCap = StrokeCap.Round
+                )
+            }
 
             LazyColumn(
                 modifier = Modifier.weight(1f),
