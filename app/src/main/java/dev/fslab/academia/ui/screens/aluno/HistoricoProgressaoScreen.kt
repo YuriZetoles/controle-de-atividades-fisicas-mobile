@@ -197,35 +197,36 @@ fun HistoricoProgressaoScreen(
                             }
                         }
                     } else {
-                        val tipoExercicio = state.progressao.firstOrNull()?.tipo ?: TipoExercicio.REPETICAO
+                        val progressaoCronologica = state.progressao.sortedBy { it.data }
+                        val tipoExercicio = progressaoCronologica.firstOrNull()?.tipo ?: TipoExercicio.REPETICAO
                         val eTempo = tipoExercicio == TipoExercicio.TEMPO
 
                         item {
-                            MetricasProgressao(progressao = state.progressao, eTempo = eTempo, colors = colors)
+                            MetricasProgressao(progressao = progressaoCronologica, eTempo = eTempo, colors = colors)
                         }
 
                         if (eTempo) {
-                            val temMelhorTempo = state.progressao.any { it.melhorTempoSegundos != null }
+                            val temMelhorTempo = progressaoCronologica.any { it.melhorTempoSegundos != null }
                             if (temMelhorTempo) {
                                 item {
                                     GraficoProgressao(
                                         titulo = "Melhor tempo por sessão",
                                         corLinha = colors.featureOrange,
-                                        pontos = state.progressao.map { (it.melhorTempoSegundos ?: 0).toFloat() },
-                                        datas = state.progressao.map { it.data },
+                                        pontos = progressaoCronologica.map { (it.melhorTempoSegundos ?: 0).toFloat() },
+                                        datas = progressaoCronologica.map { it.data },
                                         colors = colors,
                                         formatarValor = { formatarSegundosCurto(it.toInt()) }
                                     )
                                 }
                             }
-                            val temMediaTempo = state.progressao.any { it.mediaTempoSegundos != null }
+                            val temMediaTempo = progressaoCronologica.any { it.mediaTempoSegundos != null }
                             if (temMediaTempo) {
                                 item {
                                     GraficoProgressao(
                                         titulo = "Tempo médio por sessão",
                                         corLinha = colors.featureCyan,
-                                        pontos = state.progressao.map { (it.mediaTempoSegundos ?: 0).toFloat() },
-                                        datas = state.progressao.map { it.data },
+                                        pontos = progressaoCronologica.map { (it.mediaTempoSegundos ?: 0).toFloat() },
+                                        datas = progressaoCronologica.map { it.data },
                                         colors = colors,
                                         formatarValor = { formatarSegundosCurto(it.toInt()) }
                                     )
@@ -236,21 +237,21 @@ fun HistoricoProgressaoScreen(
                                 GraficoProgressao(
                                     titulo = "Volume total por sessão (kg)",
                                     corLinha = colors.primary,
-                                    pontos = state.progressao.map { it.volumeTotal.toFloat() },
-                                    datas = state.progressao.map { it.data },
+                                    pontos = progressaoCronologica.map { it.volumeTotal.toFloat() },
+                                    datas = progressaoCronologica.map { it.data },
                                     colors = colors,
                                     formatarValor = { "%.0f kg".format(it) }
                                 )
                             }
 
-                            val temCarga = state.progressao.any { it.maiorCarga != null }
+                            val temCarga = progressaoCronologica.any { it.maiorCarga != null }
                             if (temCarga) {
                                 item {
                                     GraficoProgressao(
                                         titulo = "Carga máxima por sessão (kg)",
                                         corLinha = Color(0xFFF59E0B),
-                                        pontos = state.progressao.map { (it.maiorCarga ?: 0.0).toFloat() },
-                                        datas = state.progressao.map { it.data },
+                                        pontos = progressaoCronologica.map { (it.maiorCarga ?: 0.0).toFloat() },
+                                        datas = progressaoCronologica.map { it.data },
                                         colors = colors,
                                         formatarValor = { "%.1f kg".format(it) }
                                     )
