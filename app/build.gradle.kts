@@ -112,4 +112,7 @@ dependencies {
     // Firebase Cloud Messaging
     implementation(platform("com.google.firebase:firebase-bom:33.7.0"))
     implementation("com.google.firebase:firebase-messaging-ktx")
+
+    // Drag-and-drop para reordenar listas
+    implementation("sh.calvin.reorderable:reorderable:2.4.0")
 }

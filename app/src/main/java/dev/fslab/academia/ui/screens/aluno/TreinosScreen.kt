@@ -16,17 +16,19 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.ArrowDownward
-import androidx.compose.material.icons.filled.ArrowUpward
 import androidx.compose.material.icons.filled.Bookmark
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.DragHandle
 import androidx.compose.material.icons.filled.FitnessCenter
+import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Reorder
 import androidx.compose.material.icons.filled.Search
@@ -60,6 +62,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -77,6 +80,10 @@ import dev.fslab.academia.ui.viewmodel.TreinoFiltros
 import dev.fslab.academia.ui.viewmodel.TreinoListUiState
 import dev.fslab.academia.ui.viewmodel.TreinoReorderUiState
 import dev.fslab.academia.ui.viewmodel.TreinoViewModel
+import sh.calvin.reorderable.ReorderableItem
+import sh.calvin.reorderable.rememberReorderableLazyListState
+import java.time.OffsetDateTime
+import java.time.format.DateTimeFormatter
 
 @Composable
 fun TreinosScreen(
@@ -94,6 +101,16 @@ fun TreinosScreen(
     var modoReorder by remember { mutableStateOf(false) }
     var ordemLocal by remember { mutableStateOf<List<TreinoData>>(emptyList()) }
     var mostrarMaisMenu by remember { mutableStateOf(false) }
+    val lazyListState = rememberLazyListState()
+    val reorderableLazyListState = rememberReorderableLazyListState(lazyListState) { from, to ->
+        val fromIdx = ordemLocal.indexOfFirst { it.id == from.key }
+        val toIdx = ordemLocal.indexOfFirst { it.id == to.key }
+        if (fromIdx >= 0 && toIdx >= 0) {
+            ordemLocal = ordemLocal.toMutableList().apply {
+                add(toIdx, removeAt(fromIdx))
+            }
+        }
+    }
 
     LaunchedEffect(Unit) { viewModel.carregar() }
 
@@ -217,6 +234,7 @@ fun TreinosScreen(
                 .padding(innerPadding)
         ) {
             LazyColumn(
+                state = lazyListState,
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(horizontal = 16.dp),
@@ -316,30 +334,21 @@ fun TreinosScreen(
                         items(lista, key = { it.id }) { treino ->
                             if (modoReorder) {
                                 val idx = lista.indexOf(treino)
-                                TreinoReorderCard(
-                                    treino = treino,
-                                    posicao = idx + 1,
-                                    podeSubir = idx > 0,
-                                    podeDescer = idx < lista.size - 1,
-                                    onSubir = {
-                                        if (idx > 0) {
-                                            val nova = lista.toMutableList()
-                                            val tmp = nova[idx - 1]
-                                            nova[idx - 1] = nova[idx]
-                                            nova[idx] = tmp
-                                            ordemLocal = nova
+                                ReorderableItem(reorderableLazyListState, key = treino.id) { isDragging ->
+                                    TreinoReorderCard(
+                                        treino = treino,
+                                        posicao = idx + 1,
+                                        isDragging = isDragging,
+                                        dragHandle = {
+                                            Icon(
+                                                Icons.Filled.DragHandle,
+                                                contentDescription = "Arrastar",
+                                                tint = LocalAcademiaColors.current.textSecondary,
+                                                modifier = Modifier.draggableHandle()
+                                            )
                                         }
-                                    },
-                                    onDescer = {
-                                        if (idx < lista.size - 1) {
-                                            val nova = lista.toMutableList()
-                                            val tmp = nova[idx + 1]
-                                            nova[idx + 1] = nova[idx]
-                                            nova[idx] = tmp
-                                            ordemLocal = nova
-                                        }
-                                    }
-                                )
+                                    )
+                                }
                             } else {
                                 TreinoCard(
                                     treino = treino,
@@ -427,11 +436,22 @@ private fun BarraFiltrosTreino(
     }
 }
 
+private fun formatarUltimaSessao(iso: String?): String? {
+    if (iso == null) return null
+    return runCatching {
+        val dt = OffsetDateTime.parse(iso)
+        val fmt = DateTimeFormatter.ofPattern("dd/MM/yyyy")
+        dt.format(fmt)
+    }.getOrNull()
+}
+
 @Composable
 private fun TreinoCard(treino: TreinoData, onClick: () -> Unit) {
     val colors = LocalAcademiaColors.current
     val descricao = treino.descricao?.takeIf { it.isNotBlank() } ?: "Sem descrição cadastrada"
     val dias = treino.diasSemana.orEmpty().mapNotNull(DiaSemana::fromApi)
+    val ultimaSessao = formatarUltimaSessao(treino.ultimaSessaoEm)
+    val totalExercicios = treino.totalExercicios
 
     ElevatedCard(
         modifier = Modifier.fillMaxWidth().clickable(onClick = onClick),
@@ -460,7 +480,7 @@ private fun TreinoCard(treino: TreinoData, onClick: () -> Unit) {
                         descricao,
                         color = colors.textSecondary,
                         style = MaterialTheme.typography.bodyMedium,
-                        maxLines = 3,
+                        maxLines = 2,
                         overflow = TextOverflow.Ellipsis
                     )
                 }
@@ -472,6 +492,49 @@ private fun TreinoCard(treino: TreinoData, onClick: () -> Unit) {
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(Icons.Filled.FitnessCenter, null, tint = colors.primary)
+                }
+            }
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                if (totalExercicios != null) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Icon(
+                            Icons.Filled.FitnessCenter,
+                            contentDescription = null,
+                            tint = colors.textSecondary,
+                            modifier = Modifier.size(14.dp)
+                        )
+                        Text(
+                            "$totalExercicios exercício${if (totalExercicios != 1) "s" else ""}",
+                            color = colors.textSecondary,
+                            style = MaterialTheme.typography.labelMedium
+                        )
+                    }
+                }
+                if (ultimaSessao != null) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Icon(
+                            Icons.Filled.History,
+                            contentDescription = null,
+                            tint = colors.textSecondary,
+                            modifier = Modifier.size(14.dp)
+                        )
+                        Text(
+                            ultimaSessao,
+                            color = colors.textSecondary,
+                            style = MaterialTheme.typography.labelMedium
+                        )
+                    }
                 }
             }
 
@@ -500,15 +563,17 @@ private fun TreinoCard(treino: TreinoData, onClick: () -> Unit) {
 private fun TreinoReorderCard(
     treino: TreinoData,
     posicao: Int,
-    podeSubir: Boolean,
-    podeDescer: Boolean,
-    onSubir: () -> Unit,
-    onDescer: () -> Unit
+    isDragging: Boolean,
+    dragHandle: @Composable () -> Unit
 ) {
     val colors = LocalAcademiaColors.current
     Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = colors.surface)
+        modifier = Modifier
+            .fillMaxWidth()
+            .then(if (isDragging) Modifier.shadow(8.dp, RoundedCornerShape(12.dp)) else Modifier),
+        colors = CardDefaults.cardColors(
+            containerColor = if (isDragging) colors.surface.copy(alpha = 0.95f) else colors.surface
+        )
     ) {
         Row(
             modifier = Modifier.fillMaxWidth().padding(14.dp),
@@ -516,7 +581,7 @@ private fun TreinoReorderCard(
         ) {
             Box(
                 modifier = Modifier
-                    .size(40.dp)
+                    .size(36.dp)
                     .clip(CircleShape)
                     .background(colors.primary.copy(alpha = 0.18f)),
                 contentAlignment = Alignment.Center
@@ -524,7 +589,7 @@ private fun TreinoReorderCard(
                 Text(
                     posicao.toString(),
                     color = colors.primary,
-                    style = MaterialTheme.typography.titleMedium,
+                    style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.ExtraBold
                 )
             }
@@ -548,18 +613,7 @@ private fun TreinoReorderCard(
                     style = MaterialTheme.typography.labelMedium
                 )
             }
-            IconButton(onClick = onSubir, enabled = podeSubir) {
-                Icon(
-                    Icons.Filled.ArrowUpward, "Subir",
-                    tint = if (podeSubir) colors.textPrimary else colors.textSecondary
-                )
-            }
-            IconButton(onClick = onDescer, enabled = podeDescer) {
-                Icon(
-                    Icons.Filled.ArrowDownward, "Descer",
-                    tint = if (podeDescer) colors.textPrimary else colors.textSecondary
-                )
-            }
+            dragHandle()
         }
     }
 }

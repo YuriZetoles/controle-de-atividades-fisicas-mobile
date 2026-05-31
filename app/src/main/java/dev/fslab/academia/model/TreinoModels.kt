@@ -61,7 +61,9 @@ data class TreinoData(
     @SerializedName("treinador_id") val treinadorId: String? = null,
     @SerializedName("dias_semana") val diasSemana: List<String>? = null,
     @SerializedName("ordem") val ordem: Int? = null,
-    @SerializedName("exercicios") val exercicios: List<TreinoExercicioDetalheData> = emptyList()
+    @SerializedName("exercicios") val exercicios: List<TreinoExercicioDetalheData> = emptyList(),
+    @SerializedName("ultima_sessao_em") val ultimaSessaoEm: String? = null,
+    @SerializedName("total_exercicios") val totalExercicios: Int? = null
 )
 
 data class TreinoPaginationData(
