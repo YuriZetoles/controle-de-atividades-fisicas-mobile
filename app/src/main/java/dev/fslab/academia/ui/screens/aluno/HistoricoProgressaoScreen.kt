@@ -2,6 +2,7 @@ package dev.fslab.academia.ui.screens.aluno
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -37,9 +38,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -205,11 +208,12 @@ fun HistoricoProgressaoScreen(
                             if (temMelhorTempo) {
                                 item {
                                     GraficoProgressao(
-                                        titulo = "Melhor tempo por sessão (s)",
+                                        titulo = "Melhor tempo por sessão",
                                         corLinha = colors.featureOrange,
                                         pontos = state.progressao.map { (it.melhorTempoSegundos ?: 0).toFloat() },
                                         datas = state.progressao.map { it.data },
-                                        colors = colors
+                                        colors = colors,
+                                        formatarValor = { formatarSegundosCurto(it.toInt()) }
                                     )
                                 }
                             }
@@ -217,11 +221,12 @@ fun HistoricoProgressaoScreen(
                             if (temMediaTempo) {
                                 item {
                                     GraficoProgressao(
-                                        titulo = "Tempo médio por sessão (s)",
+                                        titulo = "Tempo médio por sessão",
                                         corLinha = colors.featureCyan,
                                         pontos = state.progressao.map { (it.mediaTempoSegundos ?: 0).toFloat() },
                                         datas = state.progressao.map { it.data },
-                                        colors = colors
+                                        colors = colors,
+                                        formatarValor = { formatarSegundosCurto(it.toInt()) }
                                     )
                                 }
                             }
@@ -232,7 +237,8 @@ fun HistoricoProgressaoScreen(
                                     corLinha = colors.primary,
                                     pontos = state.progressao.map { it.volumeTotal.toFloat() },
                                     datas = state.progressao.map { it.data },
-                                    colors = colors
+                                    colors = colors,
+                                    formatarValor = { "%.0f kg".format(it) }
                                 )
                             }
 
@@ -244,7 +250,8 @@ fun HistoricoProgressaoScreen(
                                         corLinha = Color(0xFFF59E0B),
                                         pontos = state.progressao.map { (it.maiorCarga ?: 0.0).toFloat() },
                                         datas = state.progressao.map { it.data },
-                                        colors = colors
+                                        colors = colors,
+                                        formatarValor = { "%.1f kg".format(it) }
                                     )
                                 }
                             }
@@ -360,13 +367,16 @@ private fun GraficoProgressao(
     corLinha: Color,
     pontos: List<Float>,
     datas: List<String>,
-    colors: AcademiaColors
+    colors: AcademiaColors,
+    formatarValor: (Float) -> String = { "%.1f".format(it) }
 ) {
     if (pontos.size < 2) return
 
     val maxVal = pontos.max()
     val minVal = pontos.min()
     val range = if (maxVal == minVal) 1f else maxVal - minVal
+
+    var selectedIndex by remember { mutableIntStateOf(pontos.lastIndex) }
 
     Card(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp),
@@ -390,7 +400,20 @@ private fun GraficoProgressao(
             }
             Spacer(Modifier.height(8.dp))
 
-            Canvas(modifier = Modifier.fillMaxWidth().height(100.dp)) {
+            Canvas(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(100.dp)
+                    .pointerInput(pontos) {
+                        detectTapGestures { offset ->
+                            val w = size.width.toFloat()
+                            val idx = if (pontos.size > 1)
+                                ((offset.x / w) * (pontos.size - 1)).toInt().coerceIn(0, pontos.lastIndex)
+                            else 0
+                            selectedIndex = idx
+                        }
+                    }
+            ) {
                 val w = size.width
                 val h = size.height
                 val padTop = 20f
@@ -432,23 +455,55 @@ private fun GraficoProgressao(
                     style = Stroke(width = 2.dp.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round)
                 )
 
-                val lastX = xAt(pontos.lastIndex)
-                val lastY = yAt(pontos.last())
-                drawCircle(color = corLinha, radius = 4.dp.toPx(), center = Offset(lastX, lastY))
-                drawCircle(color = Color.White.copy(alpha = 0.15f), radius = 2.dp.toPx(), center = Offset(lastX, lastY))
+                pontos.forEachIndexed { i, v ->
+                    val x = xAt(i)
+                    val y = yAt(v)
+                    if (i == selectedIndex) {
+                        drawCircle(color = corLinha, radius = 6.dp.toPx(), center = Offset(x, y))
+                        drawCircle(color = Color.White, radius = 3.dp.toPx(), center = Offset(x, y))
+                        drawLine(
+                            color = corLinha.copy(alpha = 0.3f),
+                            start = Offset(x, padTop),
+                            end = Offset(x, h - padBottom),
+                            strokeWidth = 1.dp.toPx()
+                        )
+                    } else {
+                        drawCircle(color = corLinha.copy(alpha = 0.4f), radius = 3.dp.toPx(), center = Offset(x, y))
+                    }
+                }
+            }
+
+            val si = selectedIndex.coerceIn(0, pontos.lastIndex)
+            Row(
+                Modifier.fillMaxWidth().padding(top = 6.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    formatarDataCurtaProgressao(datas.getOrNull(si)),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = colors.textSecondary,
+                    fontSize = 9.sp
+                )
+                Text(
+                    formatarValor(pontos[si]),
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = corLinha
+                )
             }
 
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 Text(
                     formatarDataCurtaProgressao(datas.firstOrNull()),
                     style = MaterialTheme.typography.labelSmall,
-                    color = colors.textSecondary,
+                    color = colors.textSecondary.copy(alpha = 0.5f),
                     fontSize = 9.sp
                 )
                 Text(
                     formatarDataCurtaProgressao(datas.lastOrNull()),
                     style = MaterialTheme.typography.labelSmall,
-                    color = colors.textSecondary,
+                    color = colors.textSecondary.copy(alpha = 0.5f),
                     fontSize = 9.sp
                 )
             }
@@ -563,7 +618,7 @@ private fun formatarDataCurtaProgressao(iso: String?): String {
     return try {
         val instant = Instant.parse(iso)
         val zdt = instant.atZone(ZoneId.systemDefault())
-        DateTimeFormatter.ofPattern("dd/MM", Locale("pt", "BR")).format(zdt)
+        DateTimeFormatter.ofPattern("dd/MM", java.util.Locale.forLanguageTag("pt-BR")).format(zdt)
     } catch (_: Exception) { "" }
 }
 
@@ -571,6 +626,6 @@ private fun formatarDataProgressaoItem(iso: String): String {
     return try {
         val instant = Instant.parse(iso)
         val zdt = instant.atZone(ZoneId.systemDefault())
-        DateTimeFormatter.ofPattern("dd 'de' MMMM", Locale("pt", "BR")).format(zdt)
+        DateTimeFormatter.ofPattern("dd 'de' MMMM", java.util.Locale.forLanguageTag("pt-BR")).format(zdt)
     } catch (_: Exception) { iso }
 }

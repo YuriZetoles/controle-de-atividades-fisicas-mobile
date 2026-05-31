@@ -6,6 +6,7 @@ import dev.fslab.academia.model.EstatisticasData
 import dev.fslab.academia.model.ExercicioFrequenteData
 import dev.fslab.academia.model.GrupoMuscularData
 import dev.fslab.academia.model.ProgressaoItemData
+import dev.fslab.academia.model.SessaoData
 import dev.fslab.academia.model.SessaoListItemData
 import dev.fslab.academia.network.RetrofitClient
 import kotlinx.coroutines.async
@@ -79,6 +80,13 @@ sealed interface ProgressaoUiState {
     data class Error(val message: String) : ProgressaoUiState
 }
 
+sealed interface SessaoDetalheUiState {
+    data object Idle : SessaoDetalheUiState
+    data object Loading : SessaoDetalheUiState
+    data class Success(val sessao: SessaoData) : SessaoDetalheUiState
+    data class Error(val message: String) : SessaoDetalheUiState
+}
+
 class HistoricoViewModel : ViewModel() {
 
     private val _uiState = MutableStateFlow<HistoricoUiState>(HistoricoUiState.Loading)
@@ -89,6 +97,9 @@ class HistoricoViewModel : ViewModel() {
 
     private val _progressaoState = MutableStateFlow<ProgressaoUiState>(ProgressaoUiState.Loading)
     val progressaoState: StateFlow<ProgressaoUiState> = _progressaoState.asStateFlow()
+
+    private val _sessaoDetalheState = MutableStateFlow<SessaoDetalheUiState>(SessaoDetalheUiState.Idle)
+    val sessaoDetalheState: StateFlow<SessaoDetalheUiState> = _sessaoDetalheState.asStateFlow()
 
     private val _periodoFiltro = MutableStateFlow(PeriodoFiltro.trintaDias())
     val periodoFiltro: StateFlow<PeriodoFiltro> = _periodoFiltro.asStateFlow()
@@ -240,6 +251,23 @@ class HistoricoViewModel : ViewModel() {
                 }
             } catch (_: Exception) {
                 _carregarMaisState.value = SessoesCarregarMaisState.Idle
+            }
+        }
+    }
+
+    fun carregarSessaoDetalhe(id: String) {
+        _sessaoDetalheState.value = SessaoDetalheUiState.Loading
+        viewModelScope.launch {
+            try {
+                val resp = RetrofitClient.sessaoApi.getById(id)
+                val sessao = resp.body()?.data
+                if (resp.isSuccessful && sessao != null) {
+                    _sessaoDetalheState.value = SessaoDetalheUiState.Success(sessao)
+                } else {
+                    _sessaoDetalheState.value = SessaoDetalheUiState.Error("Sessão não encontrada")
+                }
+            } catch (e: Exception) {
+                _sessaoDetalheState.value = SessaoDetalheUiState.Error(e.message ?: "Sem conexão")
             }
         }
     }
