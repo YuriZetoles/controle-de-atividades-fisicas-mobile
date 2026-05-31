@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -19,6 +20,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
+import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -80,6 +82,7 @@ private val STATUS_LABELS = listOf(null to "Todas", "CONCLUIDA" to "Concluídas"
 fun HistoricoScreen(
     onNavigateTab: (String) -> Unit = {},
     onAbrirProgressao: (String, String) -> Unit = { _, _ -> },
+    onAbrirSessao: (String) -> Unit = {},
     viewModel: HistoricoViewModel = viewModel()
 ) {
     val colors = LocalAcademiaColors.current
@@ -262,7 +265,11 @@ fun HistoricoScreen(
                         }
                     } else {
                         items(state.sessoes) { sessao ->
-                            SessaoHistoricoCard(sessao = sessao, colors = colors)
+                            SessaoHistoricoCard(
+                                sessao = sessao,
+                                colors = colors,
+                                onClick = { onAbrirSessao(sessao.id) }
+                            )
                         }
                     }
 
@@ -323,21 +330,22 @@ private fun StatsSection(stats: EstatisticasData, colors: AcademiaColors) {
         )
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             StatCard(modifier = Modifier.weight(1f), value = "${stats.sessoesConcluidas}", label = "concluídas", colors = colors)
-            StatCard(modifier = Modifier.weight(1f), value = "🔥 ${stats.sequenciaAtual}", label = "sequência", colors = colors)
             StatCard(modifier = Modifier.weight(1f), value = "%.1fx".format(stats.treinosPorSemanaMedia), label = "/ semana", colors = colors)
+            StatCard(
+                modifier = Modifier.weight(1f),
+                value = "${stats.mediaDuracaoMinutos} min",
+                label = "duração média",
+                colors = colors
+            )
         }
+        Spacer(Modifier.height(8.dp))
+        StreakCard(sequenciaAtual = stats.sequenciaAtual, melhorSequencia = stats.melhorSequencia, colors = colors)
         Spacer(Modifier.height(8.dp))
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             StatCard(
                 modifier = Modifier.weight(1f),
                 value = "%.0f kg".format(stats.volumeTotalKg),
                 label = "volume total",
-                colors = colors
-            )
-            StatCard(
-                modifier = Modifier.weight(1f),
-                value = "${stats.mediaDuracaoMinutos} min",
-                label = "duração média",
                 colors = colors
             )
         }
@@ -375,6 +383,50 @@ private fun StatCard(modifier: Modifier = Modifier, value: String, label: String
         ) {
             Text(value, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = colors.textPrimary)
             Text(label, style = MaterialTheme.typography.labelSmall, color = colors.textSecondary)
+        }
+    }
+}
+
+@Composable
+private fun StreakCard(sequenciaAtual: Int, melhorSequencia: Int, colors: AcademiaColors) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = colors.surface),
+        shape = RoundedCornerShape(12.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
+            horizontalArrangement = Arrangement.SpaceEvenly,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text(
+                    "🔥 $sequenciaAtual",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = colors.featureOrange
+                )
+                Text(
+                    if (sequenciaAtual == 1) "dia seguido" else "dias seguidos",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = colors.textSecondary
+                )
+            }
+            Box(
+                modifier = Modifier
+                    .height(40.dp)
+                    .width(1.dp)
+                    .background(colors.inputBorder)
+            )
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text(
+                    "🏆 $melhorSequencia",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = colors.textPrimary
+                )
+                Text("recorde pessoal", style = MaterialTheme.typography.labelSmall, color = colors.textSecondary)
+            }
         }
     }
 }
@@ -475,7 +527,7 @@ private fun ExerciciosFrequentesSection(
 }
 
 @Composable
-private fun SessaoHistoricoCard(sessao: SessaoListItemData, colors: AcademiaColors) {
+private fun SessaoHistoricoCard(sessao: SessaoListItemData, colors: AcademiaColors, onClick: () -> Unit = {}) {
     val duracaoMin = calcularDuracaoMin(sessao.inicio, sessao.fim)
     val dataFormatada = formatarDataHoraHistorico(sessao.inicio)
     val (badgeBg, badgeFg, badgeText) = when (sessao.status) {
@@ -485,14 +537,14 @@ private fun SessaoHistoricoCard(sessao: SessaoListItemData, colors: AcademiaColo
     }
 
     Card(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp).clickable(onClick = onClick),
         colors = CardDefaults.cardColors(containerColor = colors.surface),
         shape = RoundedCornerShape(12.dp)
     ) {
         Row(
             modifier = Modifier.fillMaxWidth().padding(12.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.Top
+            verticalAlignment = Alignment.CenterVertically
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
@@ -518,18 +570,16 @@ private fun SessaoHistoricoCard(sessao: SessaoListItemData, colors: AcademiaColo
                     )
                 }
             }
-            Box(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(badgeBg)
-                    .padding(horizontal = 8.dp, vertical = 4.dp)
-            ) {
-                Text(
-                    badgeText,
-                    style = MaterialTheme.typography.labelSmall,
-                    fontWeight = FontWeight.SemiBold,
-                    color = badgeFg
-                )
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(badgeBg)
+                        .padding(horizontal = 8.dp, vertical = 4.dp)
+                ) {
+                    Text(badgeText, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.SemiBold, color = badgeFg)
+                }
+                Icon(Icons.Filled.ChevronRight, null, tint = colors.textSecondary, modifier = Modifier.size(16.dp))
             }
         }
     }
@@ -555,7 +605,7 @@ private fun formatarDataHoraHistorico(inicio: String?): String {
     return try {
         val instant = Instant.parse(inicio)
         val zdt = instant.atZone(ZoneId.systemDefault())
-        val fmt = DateTimeFormatter.ofPattern("EEE, dd 'de' MMMM · HH'h'mm", Locale("pt", "BR"))
+        val fmt = DateTimeFormatter.ofPattern("EEE, dd 'de' MMMM · HH'h'mm", java.util.Locale.forLanguageTag("pt-BR"))
         zdt.format(fmt)
     } catch (_: Exception) { inicio }
 }

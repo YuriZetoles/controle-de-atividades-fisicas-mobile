@@ -2,6 +2,8 @@ package dev.fslab.academia.ui.screens.aluno
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -37,9 +39,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -193,35 +197,38 @@ fun HistoricoProgressaoScreen(
                             }
                         }
                     } else {
-                        val tipoExercicio = state.progressao.firstOrNull()?.tipo ?: TipoExercicio.REPETICAO
+                        val progressaoCronologica = state.progressao.sortedBy { it.data }
+                        val tipoExercicio = progressaoCronologica.firstOrNull()?.tipo ?: TipoExercicio.REPETICAO
                         val eTempo = tipoExercicio == TipoExercicio.TEMPO
 
                         item {
-                            MetricasProgressao(progressao = state.progressao, eTempo = eTempo, colors = colors)
+                            MetricasProgressao(progressao = progressaoCronologica, eTempo = eTempo, colors = colors)
                         }
 
                         if (eTempo) {
-                            val temMelhorTempo = state.progressao.any { it.melhorTempoSegundos != null }
+                            val temMelhorTempo = progressaoCronologica.any { it.melhorTempoSegundos != null }
                             if (temMelhorTempo) {
                                 item {
                                     GraficoProgressao(
-                                        titulo = "Melhor tempo por sessão (s)",
+                                        titulo = "Melhor tempo por sessão",
                                         corLinha = colors.featureOrange,
-                                        pontos = state.progressao.map { (it.melhorTempoSegundos ?: 0).toFloat() },
-                                        datas = state.progressao.map { it.data },
-                                        colors = colors
+                                        pontos = progressaoCronologica.map { (it.melhorTempoSegundos ?: 0).toFloat() },
+                                        datas = progressaoCronologica.map { it.data },
+                                        colors = colors,
+                                        formatarValor = { formatarSegundosCurto(it.toInt()) }
                                     )
                                 }
                             }
-                            val temMediaTempo = state.progressao.any { it.mediaTempoSegundos != null }
+                            val temMediaTempo = progressaoCronologica.any { it.mediaTempoSegundos != null }
                             if (temMediaTempo) {
                                 item {
                                     GraficoProgressao(
-                                        titulo = "Tempo médio por sessão (s)",
+                                        titulo = "Tempo médio por sessão",
                                         corLinha = colors.featureCyan,
-                                        pontos = state.progressao.map { (it.mediaTempoSegundos ?: 0).toFloat() },
-                                        datas = state.progressao.map { it.data },
-                                        colors = colors
+                                        pontos = progressaoCronologica.map { (it.mediaTempoSegundos ?: 0).toFloat() },
+                                        datas = progressaoCronologica.map { it.data },
+                                        colors = colors,
+                                        formatarValor = { formatarSegundosCurto(it.toInt()) }
                                     )
                                 }
                             }
@@ -230,21 +237,23 @@ fun HistoricoProgressaoScreen(
                                 GraficoProgressao(
                                     titulo = "Volume total por sessão (kg)",
                                     corLinha = colors.primary,
-                                    pontos = state.progressao.map { it.volumeTotal.toFloat() },
-                                    datas = state.progressao.map { it.data },
-                                    colors = colors
+                                    pontos = progressaoCronologica.map { it.volumeTotal.toFloat() },
+                                    datas = progressaoCronologica.map { it.data },
+                                    colors = colors,
+                                    formatarValor = { "%.0f kg".format(it) }
                                 )
                             }
 
-                            val temCarga = state.progressao.any { it.maiorCarga != null }
+                            val temCarga = progressaoCronologica.any { it.maiorCarga != null }
                             if (temCarga) {
                                 item {
                                     GraficoProgressao(
                                         titulo = "Carga máxima por sessão (kg)",
                                         corLinha = Color(0xFFF59E0B),
-                                        pontos = state.progressao.map { (it.maiorCarga ?: 0.0).toFloat() },
-                                        datas = state.progressao.map { it.data },
-                                        colors = colors
+                                        pontos = progressaoCronologica.map { (it.maiorCarga ?: 0.0).toFloat() },
+                                        datas = progressaoCronologica.map { it.data },
+                                        colors = colors,
+                                        formatarValor = { "%.1f kg".format(it) }
                                     )
                                 }
                             }
@@ -360,13 +369,16 @@ private fun GraficoProgressao(
     corLinha: Color,
     pontos: List<Float>,
     datas: List<String>,
-    colors: AcademiaColors
+    colors: AcademiaColors,
+    formatarValor: (Float) -> String = { "%.1f".format(it) }
 ) {
     if (pontos.size < 2) return
 
     val maxVal = pontos.max()
     val minVal = pontos.min()
     val range = if (maxVal == minVal) 1f else maxVal - minVal
+
+    var selectedIndex by remember { mutableIntStateOf(pontos.lastIndex) }
 
     Card(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp),
@@ -390,7 +402,34 @@ private fun GraficoProgressao(
             }
             Spacer(Modifier.height(8.dp))
 
-            Canvas(modifier = Modifier.fillMaxWidth().height(100.dp)) {
+            fun indiceMaisProximo(offsetX: Float, canvasWidth: Float): Int {
+                if (pontos.size <= 1) return 0
+                return pontos.indices.minByOrNull { i ->
+                    val px = i * canvasWidth / (pontos.size - 1)
+                    kotlin.math.abs(offsetX - px)
+                } ?: 0
+            }
+
+            Canvas(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(100.dp)
+                    .pointerInput(pontos) {
+                        detectTapGestures { offset ->
+                            selectedIndex = indiceMaisProximo(offset.x, size.width.toFloat())
+                        }
+                    }
+                    .pointerInput(pontos) {
+                        detectHorizontalDragGestures { _, dragAmount ->
+                            val w = size.width.toFloat()
+                            if (w > 0 && pontos.size > 1) {
+                                val step = w / (pontos.size - 1)
+                                val newX = (selectedIndex * step + dragAmount).coerceIn(0f, w)
+                                selectedIndex = indiceMaisProximo(newX, w)
+                            }
+                        }
+                    }
+            ) {
                 val w = size.width
                 val h = size.height
                 val padTop = 20f
@@ -432,23 +471,55 @@ private fun GraficoProgressao(
                     style = Stroke(width = 2.dp.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round)
                 )
 
-                val lastX = xAt(pontos.lastIndex)
-                val lastY = yAt(pontos.last())
-                drawCircle(color = corLinha, radius = 4.dp.toPx(), center = Offset(lastX, lastY))
-                drawCircle(color = Color.White.copy(alpha = 0.15f), radius = 2.dp.toPx(), center = Offset(lastX, lastY))
+                pontos.forEachIndexed { i, v ->
+                    val x = xAt(i)
+                    val y = yAt(v)
+                    if (i == selectedIndex) {
+                        drawCircle(color = corLinha, radius = 6.dp.toPx(), center = Offset(x, y))
+                        drawCircle(color = Color.White, radius = 3.dp.toPx(), center = Offset(x, y))
+                        drawLine(
+                            color = corLinha.copy(alpha = 0.3f),
+                            start = Offset(x, padTop),
+                            end = Offset(x, h - padBottom),
+                            strokeWidth = 1.dp.toPx()
+                        )
+                    } else {
+                        drawCircle(color = corLinha.copy(alpha = 0.4f), radius = 3.dp.toPx(), center = Offset(x, y))
+                    }
+                }
+            }
+
+            val si = selectedIndex.coerceIn(0, pontos.lastIndex)
+            Row(
+                Modifier.fillMaxWidth().padding(top = 6.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    formatarDataCurtaProgressao(datas.getOrNull(si)),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = colors.textSecondary,
+                    fontSize = 9.sp
+                )
+                Text(
+                    formatarValor(pontos[si]),
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = corLinha
+                )
             }
 
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 Text(
                     formatarDataCurtaProgressao(datas.firstOrNull()),
                     style = MaterialTheme.typography.labelSmall,
-                    color = colors.textSecondary,
+                    color = colors.textSecondary.copy(alpha = 0.5f),
                     fontSize = 9.sp
                 )
                 Text(
                     formatarDataCurtaProgressao(datas.lastOrNull()),
                     style = MaterialTheme.typography.labelSmall,
-                    color = colors.textSecondary,
+                    color = colors.textSecondary.copy(alpha = 0.5f),
                     fontSize = 9.sp
                 )
             }
@@ -563,7 +634,7 @@ private fun formatarDataCurtaProgressao(iso: String?): String {
     return try {
         val instant = Instant.parse(iso)
         val zdt = instant.atZone(ZoneId.systemDefault())
-        DateTimeFormatter.ofPattern("dd/MM", Locale("pt", "BR")).format(zdt)
+        DateTimeFormatter.ofPattern("dd/MM", java.util.Locale.forLanguageTag("pt-BR")).format(zdt)
     } catch (_: Exception) { "" }
 }
 
@@ -571,6 +642,6 @@ private fun formatarDataProgressaoItem(iso: String): String {
     return try {
         val instant = Instant.parse(iso)
         val zdt = instant.atZone(ZoneId.systemDefault())
-        DateTimeFormatter.ofPattern("dd 'de' MMMM", Locale("pt", "BR")).format(zdt)
+        DateTimeFormatter.ofPattern("dd 'de' MMMM", java.util.Locale.forLanguageTag("pt-BR")).format(zdt)
     } catch (_: Exception) { iso }
 }
