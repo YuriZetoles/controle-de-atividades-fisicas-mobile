@@ -42,6 +42,7 @@ import dev.fslab.academia.ui.screens.aluno.ExercicioFormScreen
 import dev.fslab.academia.ui.screens.aluno.SessaoAtivaScreen
 import dev.fslab.academia.ui.screens.aluno.TreinoDetalheScreen
 import dev.fslab.academia.ui.screens.aluno.TreinoFormScreen
+import dev.fslab.academia.ui.screens.aluno.TreinosScreen
 import dev.fslab.academia.ui.screens.auth.CadastroScreen
 import dev.fslab.academia.ui.screens.auth.LoginScreen
 import dev.fslab.academia.ui.screens.chat.ChatDetailScreen
@@ -324,7 +325,22 @@ fun AcademiaApp(
             }
 
             composable(Screen.Treinos.route) {
-                PlaceholderScreen("Meus Treinos", onBack = { navController.popBackStackSafely() })
+                TreinosScreen(
+                    onBack = { navController.popBackStackSafely() },
+                    onNavigateTab = { route ->
+                        if (route == Screen.Home.route) {
+                            navController.popBackStackSafely()
+                        } else {
+                            navController.navigateSafely(route)
+                        }
+                    },
+                    onAbrirDetalhe = { id ->
+                        navController.navigateSafely(Screen.TreinoDetalhe.comId(id))
+                    },
+                    onCriar = {
+                        navController.navigateSafely(Screen.TreinoCriar.route)
+                    }
+                )
             }
 
             composable(
