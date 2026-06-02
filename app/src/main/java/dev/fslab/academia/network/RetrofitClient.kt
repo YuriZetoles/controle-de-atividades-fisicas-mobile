@@ -17,8 +17,18 @@ object RetrofitClient {
         level = HttpLoggingInterceptor.Level.BODY
     }
 
+    private val originInterceptor = okhttp3.Interceptor { chain ->
+        val origin = BASE_URL.substringBefore("/api/")
+        chain.proceed(
+            chain.request().newBuilder()
+                .header("Origin", origin)
+                .build()
+        )
+    }
+
     private val okHttpClient = OkHttpClient.Builder()
         .cookieJar(CookieManager.cookieJar)
+        .addInterceptor(originInterceptor)
         .addInterceptor(loggingInterceptor)
         .followRedirects(true)
         .connectTimeout(30, TimeUnit.SECONDS)
