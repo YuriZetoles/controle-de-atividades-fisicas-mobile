@@ -45,7 +45,10 @@ data class ProgressaoItemData(
     @SerializedName("volume_total") val volumeTotal: Double = 0.0,
     @SerializedName("melhor_tempo_segundos") val melhorTempoSegundos: Int? = null,
     @SerializedName("media_tempo_segundos") val mediaTempoSegundos: Int? = null,
-    @SerializedName("tempo_total_segundos") val tempoTotalSegundos: Int = 0
+    @SerializedName("tempo_total_segundos") val tempoTotalSegundos: Int = 0,
+    @SerializedName("distancia_total_metros") val distanciaTotalMetros: Int? = null,
+    @SerializedName("melhor_pace_segundos_por_km") val melhorPaceSegundosPorKm: Int? = null,
+    @SerializedName("media_pace_segundos_por_km") val mediaPaceSegundosPorKm: Int? = null
 ) {
     val tipo: TipoExercicio get() = TipoExercicio.fromApi(tipoExercicio)
 }

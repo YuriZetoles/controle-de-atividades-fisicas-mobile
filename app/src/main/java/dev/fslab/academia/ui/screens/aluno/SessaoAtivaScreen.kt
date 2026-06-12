@@ -40,6 +40,8 @@ import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.filled.SkipNext
 import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.automirrored.filled.DirectionsRun
+import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -199,12 +201,14 @@ private fun ExecucaoSessao(
     }
 
     val eTempo = exercicioAtual.exercicio.tipo == TipoExercicio.TEMPO
+    val eDistancia = exercicioAtual.exercicio.tipo == TipoExercicio.DISTANCIA
     val maxCargaHistorica: Double? = maxCargaPorExercicio[exercicioAtual.exercicio.id]
 
     val defaultReps = exercicioAtual.template.repeticoes?.split("-")?.firstOrNull()?.trim()
         ?.filter { it.isDigit() }?.toIntOrNull() ?: 0
     val defaultCarga = exercicioAtual.template.cargaSugerida.orEmpty()
     val defaultMeta = exercicioAtual.template.duracaoSugeridaSegundos ?: 0
+    val defaultMetaDistancia = exercicioAtual.template.distanciaSugeridaMetros ?: 1000
 
     // Mapas mutáveis — permitem entradas extras quando o usuário adiciona séries
     val repsLocais: MutableMap<String, androidx.compose.runtime.MutableIntState> = remember(exercicioAtual.id) {
@@ -225,6 +229,15 @@ private fun ExecucaoSessao(
     val metaLocais: MutableMap<String, androidx.compose.runtime.MutableIntState> = remember(exercicioAtual.id) {
         exercicioAtual.series.associate { it.id to mutableIntStateOf(defaultMeta) }.toMutableMap()
     }
+    val metaDistanciaLocais: MutableMap<String, androidx.compose.runtime.MutableIntState> = remember(exercicioAtual.id) {
+        exercicioAtual.series.associate { it.id to mutableIntStateOf(it.distanciaRealizadaMetros ?: defaultMetaDistancia) }.toMutableMap()
+    }
+    val timerSegDistanciaLocais: MutableMap<String, androidx.compose.runtime.MutableIntState> = remember(exercicioAtual.id) {
+        exercicioAtual.series.associate { it.id to mutableIntStateOf(it.tempoRealizadoSegundos ?: 0) }.toMutableMap()
+    }
+    val timerAtivoDistanciaLocais: MutableMap<String, androidx.compose.runtime.MutableState<Boolean>> = remember(exercicioAtual.id) {
+        exercicioAtual.series.associate { it.id to mutableStateOf(false) }.toMutableMap()
+    }
 
     // Contagem local de séries — pode diferir do template (usuário adiciona/remove)
     var seriesContagemLocal by remember(exercicioAtual.id) {
@@ -242,6 +255,9 @@ private fun ExecucaoSessao(
             timerSegundosLocais[id] = mutableIntStateOf(0)
             timerAtivoLocais[id] = mutableStateOf(false)
             metaLocais[id] = mutableIntStateOf(defaultMeta)
+            metaDistanciaLocais[id] = mutableIntStateOf(defaultMetaDistancia)
+            timerSegDistanciaLocais[id] = mutableIntStateOf(0)
+            timerAtivoDistanciaLocais[id] = mutableStateOf(false)
         }
     }
 
@@ -292,11 +308,18 @@ private fun ExecucaoSessao(
             val reps = repsLocais[serieId]?.intValue
             val carga = cargaLocais[serieId]?.value?.trim()?.takeIf { it.isNotBlank() }
             val tempo = timerSegundosLocais[serieId]?.intValue?.takeIf { it > 0 }
+            val distancia = metaDistanciaLocais[serieId]?.intValue?.takeIf { it > 0 }
+            val tempoDistancia = timerSegDistanciaLocais[serieId]?.intValue?.takeIf { it > 0 }
             SessaoSerieItemRequest(
                 numeroSerie = i + 1,
-                repeticoesRealizadas = if (!eTempo && status == "CONCLUIDA") reps else null,
+                repeticoesRealizadas = if (!eTempo && !eDistancia && status == "CONCLUIDA") reps else null,
                 cargaUtilizada = if (status == "CONCLUIDA") carga else null,
-                tempoRealizadoSegundos = if (eTempo && status == "CONCLUIDA") tempo else null,
+                tempoRealizadoSegundos = when {
+                    eTempo && status == "CONCLUIDA" -> tempo
+                    eDistancia && status == "CONCLUIDA" -> tempoDistancia
+                    else -> null
+                },
+                distanciaRealizadaMetros = if (eDistancia && status == "CONCLUIDA") distancia else null,
                 status = status
             )
         }
@@ -414,7 +437,8 @@ private fun ExecucaoSessao(
                             val status = statusLocais[serieId] ?: continue
                             val carga = cargaLocais[serieId] ?: continue
 
-                            if (eTempo) {
+                            when {
+                            eTempo -> {
                                 val timerSeg = timerSegundosLocais[serieId] ?: continue
                                 val timerAtivo = timerAtivoLocais[serieId] ?: continue
                                 val metaLocal = metaLocais[serieId] ?: continue
@@ -478,7 +502,52 @@ private fun ExecucaoSessao(
                                         status.value = if (status.value == "PULADA") "PENDENTE" else "PULADA"
                                     }
                                 )
-                            } else {
+                            }
+                            eDistancia -> {
+                                val timerSeg = timerSegDistanciaLocais[serieId] ?: continue
+                                val timerAtivo = timerAtivoDistanciaLocais[serieId] ?: continue
+                                val metaDist = metaDistanciaLocais[serieId] ?: continue
+
+                                LaunchedEffect(timerAtivo.value, serieId) {
+                                    while (timerAtivo.value) {
+                                        delay(1000L)
+                                        timerSeg.intValue++
+                                    }
+                                }
+
+                                SerieDistanciaRow(
+                                    numeroSerie = numeroSerie,
+                                    totalSeries = seriesContagemLocal,
+                                    segundos = timerSeg.intValue,
+                                    metaMetros = metaDist.intValue,
+                                    status = status.value,
+                                    timerAtivo = timerAtivo.value,
+                                    onAlterarMeta = { metaDist.intValue = it.coerceAtLeast(1) },
+                                    onIniciar = {
+                                        timerAtivo.value = true
+                                        status.value = "PENDENTE"
+                                    },
+                                    onParar = {
+                                        timerAtivo.value = false
+                                        status.value = "CONCLUIDA"
+                                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                        SessionSoundManager.playSerieComplete()
+                                        val tempoDescanso = exercicioAtual.template.tempoDescansoSegundos.coerceAtLeast(30)
+                                        descansoSerieInfo = "Série $numeroSerie/$seriesContagemLocal — ${exercicioAtual.exercicio.nome}"
+                                        descansoSegundos = tempoDescanso
+                                        descansoAtivo = true
+                                        SessionSoundManager.playRestStart()
+                                    },
+                                    onEditarDistancia = { novaDistancia ->
+                                        metaDist.intValue = novaDistancia.coerceAtLeast(1)
+                                    },
+                                    onPular = {
+                                        timerAtivo.value = false
+                                        status.value = if (status.value == "PULADA") "PENDENTE" else "PULADA"
+                                    }
+                                )
+                            }
+                            else -> {
                                 val reps = repsLocais[serieId] ?: continue
 
                                 SerieStepperRow(
@@ -512,6 +581,7 @@ private fun ExecucaoSessao(
                                         status.value = if (status.value == "PULADA") "PENDENTE" else "PULADA"
                                     }
                                 )
+                            }
                             }
                         }
                     }
@@ -752,18 +822,24 @@ private fun ExercicioHeaderSection(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     val eTe = exercicio.template.tipo == TipoExercicio.TEMPO
-                    val metricaText = if (eTe) {
-                        val dur = exercicio.template.duracaoSugeridaSegundos
-                        if (dur != null) "${exercicio.template.series} séries × ${formatarTempo(dur)}" else "${exercicio.template.series} séries"
-                    } else {
-                        "${exercicio.template.series} séries × ${exercicio.template.repeticoes.orEmpty()} reps"
+                    val eDi = exercicio.template.tipo == TipoExercicio.DISTANCIA
+                    val metricaText = when {
+                        eTe -> {
+                            val dur = exercicio.template.duracaoSugeridaSegundos
+                            if (dur != null) "${exercicio.template.series} séries × ${formatarTempo(dur)}" else "${exercicio.template.series} séries"
+                        }
+                        eDi -> {
+                            val dist = exercicio.template.distanciaSugeridaMetros
+                            if (dist != null) "${exercicio.template.series} séries × ${dist}m" else "${exercicio.template.series} séries"
+                        }
+                        else -> "${exercicio.template.series} séries × ${exercicio.template.repeticoes.orEmpty()} reps"
                     }
                     Text(
                         metricaText,
                         color = colors.textSecondary,
                         style = MaterialTheme.typography.bodyMedium
                     )
-                    if (!eTe) {
+                    if (!eTe && !eDi) {
                         exercicio.template.cargaSugerida?.let { carga ->
                             Text("· $carga kg sugerido", color = colors.textSecondary, style = MaterialTheme.typography.bodyMedium)
                         }
@@ -1288,6 +1364,23 @@ private fun ResumoSessaoConteudo(
                                 icone = Icons.Filled.Timer
                             )
                         }
+                        if (resumo.distanciaTotalMetros > 0) {
+                            val distText = if (resumo.distanciaTotalMetros >= 1000) {
+                                String.format("%.2f km", resumo.distanciaTotalMetros / 1000.0)
+                            } else {
+                                "${resumo.distanciaTotalMetros} m"
+                            }
+                            ResumoItem(rotulo = "Distância total", valor = distText, icone = Icons.AutoMirrored.Filled.DirectionsRun)
+                        }
+                        resumo.paceMedioSegundosPorKm?.let { pace ->
+                            val min = pace / 60
+                            val sec = pace % 60
+                            ResumoItem(
+                                rotulo = "Pace médio",
+                                valor = String.format("%d:%02d /km", min, sec),
+                                icone = Icons.Filled.Speed
+                            )
+                        }
 
                         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
@@ -1618,6 +1711,295 @@ private fun SerieTempoRow(
                     }
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun SerieDistanciaRow(
+    numeroSerie: Int,
+    totalSeries: Int,
+    segundos: Int,
+    metaMetros: Int,
+    status: String,
+    timerAtivo: Boolean,
+    onAlterarMeta: (Int) -> Unit,
+    onIniciar: () -> Unit,
+    onParar: () -> Unit,
+    onEditarDistancia: (Int) -> Unit,
+    onPular: () -> Unit
+) {
+    val colors = LocalAcademiaColors.current
+    val isIdle = status == "PENDENTE" && !timerAtivo
+
+    var expandido by remember { mutableStateOf(true) }
+    LaunchedEffect(status, timerAtivo) {
+        if (timerAtivo) expandido = true
+        else if (status == "CONCLUIDA" || status == "PULADA") expandido = false
+    }
+
+    val podeColapsar = !timerAtivo
+    val chevronAngulo by animateFloatAsState(
+        targetValue = if (expandido) 0f else -90f,
+        animationSpec = tween(200), label = "chevronDist"
+    )
+
+    var editandoDistancia by remember { mutableStateOf(false) }
+    var distanciaEditText by remember(metaMetros) { mutableStateOf(metaMetros.toString()) }
+
+    val bgColor by animateColorAsState(
+        targetValue = when (status) {
+            "CONCLUIDA" -> colors.primary.copy(alpha = 0.08f)
+            "PULADA" -> colors.error.copy(alpha = 0.08f)
+            else -> colors.surface
+        },
+        animationSpec = tween(250), label = "serieDistBg"
+    )
+    val borderColor by animateColorAsState(
+        targetValue = when (status) {
+            "CONCLUIDA" -> colors.primary.copy(alpha = 0.4f)
+            "PULADA" -> colors.error.copy(alpha = 0.3f)
+            else -> if (timerAtivo) colors.primary.copy(alpha = 0.7f) else colors.lightGray.copy(alpha = 0.5f)
+        },
+        animationSpec = tween(250), label = "serieDistBorder"
+    )
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .border(if (timerAtivo || status == "CONCLUIDA") 2.dp else 1.dp, borderColor, RoundedCornerShape(12.dp)),
+        colors = CardDefaults.cardColors(containerColor = bgColor),
+        shape = RoundedCornerShape(12.dp)
+    ) {
+        Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp)) {
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .then(
+                        if (podeColapsar) Modifier.clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null
+                        ) { expandido = !expandido }
+                        else Modifier
+                    ),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(
+                                when (status) {
+                                    "CONCLUIDA" -> colors.primary.copy(alpha = 0.2f)
+                                    "PULADA" -> colors.error.copy(alpha = 0.15f)
+                                    else -> if (timerAtivo) colors.primary.copy(alpha = 0.15f) else colors.lightGray
+                                }
+                            )
+                            .padding(horizontal = 10.dp, vertical = 4.dp)
+                    ) {
+                        Text(
+                            "Série $numeroSerie/$totalSeries",
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = when (status) {
+                                "CONCLUIDA" -> colors.primary
+                                "PULADA" -> colors.error
+                                else -> if (timerAtivo) colors.primary else colors.textSecondary
+                            }
+                        )
+                    }
+                    if (!expandido && status != "PENDENTE") {
+                        val info = when (status) {
+                            "CONCLUIDA" -> "${metaMetros}m · ${formatarTempo(segundos)}"
+                            "PULADA" -> "pulada"
+                            else -> ""
+                        }
+                        if (info.isNotBlank()) {
+                            Text(
+                                info,
+                                style = MaterialTheme.typography.labelSmall,
+                                color = if (status == "CONCLUIDA") colors.primary else colors.textSecondary,
+                                fontWeight = FontWeight.Medium,
+                                maxLines = 1
+                            )
+                        }
+                    }
+                }
+
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(0.dp)
+                ) {
+                    if (podeColapsar) {
+                        Icon(
+                            Icons.Filled.KeyboardArrowDown,
+                            contentDescription = null,
+                            tint = colors.textSecondary,
+                            modifier = Modifier
+                                .size(20.dp)
+                                .graphicsLayer { rotationZ = chevronAngulo }
+                        )
+                    }
+                    if (status == "CONCLUIDA") {
+                        IconButton(onClick = {
+                            editandoDistancia = !editandoDistancia
+                            if (!expandido) expandido = true
+                        }, modifier = Modifier.size(40.dp)) {
+                            Icon(Icons.Filled.Edit, "Corrigir distância", tint = colors.textSecondary, modifier = Modifier.size(18.dp))
+                        }
+                    }
+                    IconButton(onClick = onPular, modifier = Modifier.size(40.dp), enabled = !timerAtivo) {
+                        Icon(Icons.Filled.SkipNext, "Pular", tint = if (status == "PULADA") colors.error else colors.textSecondary, modifier = Modifier.size(22.dp))
+                    }
+                }
+            }
+
+            AnimatedVisibility(
+                visible = expandido && status != "PULADA",
+                enter = expandVertically(tween(200)),
+                exit = shrinkVertically(tween(200))
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 6.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    when {
+                        isIdle -> {
+                            MetaDistanciaStepper(metaMetros = metaMetros, onAlterarMeta = onAlterarMeta)
+                            Button(
+                                onClick = onIniciar,
+                                shape = RoundedCornerShape(14.dp),
+                                colors = ButtonDefaults.buttonColors(containerColor = colors.primary, contentColor = colors.textOnPrimary),
+                                modifier = Modifier.fillMaxWidth().height(48.dp)
+                            ) {
+                                Icon(Icons.Filled.PlayArrow, null)
+                                Spacer(Modifier.width(6.dp))
+                                Text("Iniciar", fontWeight = FontWeight.Bold)
+                            }
+                        }
+                        timerAtivo -> {
+                            TimerCirculo(
+                                segundos = segundos,
+                                metaSegundos = null,
+                                progresso = 0f,
+                                metaBatida = false,
+                                corPrincipal = colors.primary,
+                                corTexto = colors.textPrimary
+                            )
+                            Text(
+                                "Meta: ${metaMetros}m",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = colors.textSecondary
+                            )
+                            Button(
+                                onClick = onParar,
+                                shape = RoundedCornerShape(14.dp),
+                                colors = ButtonDefaults.buttonColors(containerColor = colors.error, contentColor = colors.textOnPrimary),
+                                modifier = Modifier.fillMaxWidth().height(48.dp)
+                            ) {
+                                Icon(Icons.Filled.Stop, null)
+                                Spacer(Modifier.width(6.dp))
+                                Text("Concluir", fontWeight = FontWeight.Bold)
+                            }
+                        }
+                        else -> {
+                            TimerCirculo(
+                                segundos = segundos,
+                                metaSegundos = null,
+                                progresso = 1f,
+                                metaBatida = true,
+                                corPrincipal = colors.primary.copy(alpha = 0.5f),
+                                corTexto = colors.primary,
+                                tamanho = 120
+                            )
+                            Text(
+                                "${metaMetros}m · ${formatarTempo(segundos)}",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = colors.primary,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                            if (editandoDistancia) {
+                                OutlinedTextField(
+                                    value = distanciaEditText,
+                                    onValueChange = { if (it.all(Char::isDigit) || it.isEmpty()) distanciaEditText = it },
+                                    label = { Text("Distância realizada (m)") },
+                                    singleLine = true,
+                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                    modifier = Modifier.fillMaxWidth(),
+                                    colors = OutlinedTextFieldDefaults.colors(
+                                        focusedBorderColor = colors.primary,
+                                        unfocusedBorderColor = colors.lightGray,
+                                        focusedTextColor = colors.textPrimary,
+                                        unfocusedTextColor = colors.textPrimary,
+                                        cursorColor = colors.primary,
+                                        focusedLabelColor = colors.primary
+                                    ),
+                                    trailingIcon = {
+                                        IconButton(onClick = {
+                                            distanciaEditText.toIntOrNull()?.let { onEditarDistancia(it) }
+                                            editandoDistancia = false
+                                        }) {
+                                            Icon(Icons.Filled.Check, "Confirmar", tint = colors.primary)
+                                        }
+                                    }
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun MetaDistanciaStepper(metaMetros: Int, onAlterarMeta: (Int) -> Unit) {
+    val colors = LocalAcademiaColors.current
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(20.dp)
+    ) {
+        FilledTonalIconButton(
+            onClick = { onAlterarMeta((metaMetros - 100).coerceAtLeast(100)) },
+            modifier = Modifier.size(44.dp),
+            colors = IconButtonDefaults.filledTonalIconButtonColors(
+                containerColor = colors.featureRed.copy(alpha = 0.18f),
+                contentColor = colors.featureRed
+            )
+        ) {
+            Text("−100m", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
+        }
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Text(
+                "${metaMetros}m",
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.ExtraBold,
+                color = colors.textPrimary
+            )
+            Text(
+                "distância desejada",
+                style = MaterialTheme.typography.labelSmall,
+                color = colors.textSecondary
+            )
+        }
+        FilledTonalIconButton(
+            onClick = { onAlterarMeta(metaMetros + 100) },
+            modifier = Modifier.size(44.dp),
+            colors = IconButtonDefaults.filledTonalIconButtonColors(
+                containerColor = colors.primary.copy(alpha = 0.14f),
+                contentColor = colors.primary
+            )
+        ) {
+            Text("+100m", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
         }
     }
 }
