@@ -19,6 +19,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.DirectionsRun
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.Bookmark
@@ -27,7 +28,9 @@ import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.Map
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Public
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -60,6 +63,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import dev.fslab.academia.model.EscopoExercicio
 import dev.fslab.academia.model.ExercicioData
 import dev.fslab.academia.model.GrupoMuscular
+import dev.fslab.academia.model.TipoExercicio
 import dev.fslab.academia.ui.theme.LocalAcademiaColors
 import dev.fslab.academia.ui.viewmodel.ExercicioFiltros
 import dev.fslab.academia.ui.viewmodel.ExercicioListUiState
@@ -353,6 +357,11 @@ private fun LinhaExercicio(exercicio: ExercicioData, onClick: () -> Unit) {
         .filter { it.tipoAtivacao == "PRIMARIO" }
         .joinToString(", ") { it.nome }
         .ifBlank { exercicio.descricao?.takeIf { it.isNotBlank() } ?: "Sem descrição" }
+    val (tipoIcone, tipoCor) = when (exercicio.tipo) {
+        TipoExercicio.TEMPO -> Pair(Icons.Filled.Timer, colors.featureOrange)
+        TipoExercicio.DISTANCIA -> Pair(Icons.AutoMirrored.Filled.DirectionsRun, colors.featureGreen)
+        else -> Pair(Icons.Filled.Refresh, colors.featureBlue)
+    }
 
     Row(
         modifier = Modifier
@@ -367,10 +376,10 @@ private fun LinhaExercicio(exercicio: ExercicioData, onClick: () -> Unit) {
             modifier = Modifier
                 .size(40.dp)
                 .clip(CircleShape)
-                .background(colors.primary.copy(alpha = 0.22f)),
+                .background(tipoCor.copy(alpha = 0.22f)),
             contentAlignment = Alignment.Center
         ) {
-            Icon(Icons.Filled.Bolt, null, tint = colors.primary, modifier = Modifier.size(20.dp))
+            Icon(tipoIcone, null, tint = tipoCor, modifier = Modifier.size(20.dp))
         }
         Spacer(Modifier.size(12.dp))
         Column(Modifier.weight(1f)) {

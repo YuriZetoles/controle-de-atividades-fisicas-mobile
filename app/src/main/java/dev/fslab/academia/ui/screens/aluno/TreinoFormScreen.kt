@@ -20,6 +20,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.DirectionsRun
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.DragHandle
@@ -87,12 +88,14 @@ private data class ItemForm(
     val series: Int,
     val repeticoes: String? = null,
     val duracaoSugeridaSegundos: Int? = null,
+    val distanciaSugeridaMetros: Int? = null,
     val cargaSugerida: Double?,
     val tempoDescansoSegundos: Int,
     val ordemExecucao: Int,
     val originalSeries: Int? = null,
     val originalRepeticoes: String? = null,
     val originalDuracao: Int? = null,
+    val originalDistancia: Int? = null,
     val originalCarga: Double? = null,
     val originalTempoDescanso: Int? = null,
     val originalOrdem: Int? = null
@@ -188,12 +191,14 @@ fun TreinoFormScreen(
                             series = item.series,
                             repeticoes = item.repeticoes,
                             duracaoSugeridaSegundos = item.duracaoSugeridaSegundos,
+                            distanciaSugeridaMetros = item.distanciaSugeridaMetros,
                             cargaSugerida = item.cargaSugerida?.toDoubleOrNull(),
                             tempoDescansoSegundos = item.tempoDescansoSegundos,
                             ordemExecucao = item.ordemExecucao,
                             originalSeries = item.series,
                             originalRepeticoes = item.repeticoes,
                             originalDuracao = item.duracaoSugeridaSegundos,
+                            originalDistancia = item.distanciaSugeridaMetros,
                             originalCarga = item.cargaSugerida?.toDoubleOrNull(),
                             originalTempoDescanso = item.tempoDescansoSegundos,
                             originalOrdem = item.ordemExecucao
@@ -386,6 +391,7 @@ fun TreinoFormScreen(
                                     series = item.series,
                                     repeticoes = if (item.tipoExercicio == TipoExercicio.REPETICAO) item.repeticoes else null,
                                     duracaoSugeridaSegundos = if (item.tipoExercicio == TipoExercicio.TEMPO) item.duracaoSugeridaSegundos else null,
+                                    distanciaSugeridaMetros = if (item.tipoExercicio == TipoExercicio.DISTANCIA) item.distanciaSugeridaMetros else null,
                                     cargaSugerida = item.cargaSugerida,
                                     tempoDescansoSegundos = item.tempoDescansoSegundos,
                                     ordemExecucao = idx + 1
@@ -408,6 +414,7 @@ fun TreinoFormScreen(
                                         series = item.series,
                                         repeticoes = if (item.tipoExercicio == TipoExercicio.REPETICAO) item.repeticoes else null,
                                         duracaoSugeridaSegundos = if (item.tipoExercicio == TipoExercicio.TEMPO) item.duracaoSugeridaSegundos else null,
+                                        distanciaSugeridaMetros = if (item.tipoExercicio == TipoExercicio.DISTANCIA) item.distanciaSugeridaMetros else null,
                                         cargaSugerida = item.cargaSugerida,
                                         tempoDescansoSegundos = item.tempoDescansoSegundos,
                                         ordemExecucao = idx + 1
@@ -421,10 +428,11 @@ fun TreinoFormScreen(
                                         val mudouSeries = item.originalSeries != item.series
                                         val mudouReps = item.originalRepeticoes != item.repeticoes
                                         val mudouDuracao = item.originalDuracao != item.duracaoSugeridaSegundos
+                                        val mudouDistancia = item.originalDistancia != item.distanciaSugeridaMetros
                                         val mudouCarga = item.originalCarga != item.cargaSugerida
                                         val mudouDesc = item.originalTempoDescanso != item.tempoDescansoSegundos
                                         val mudouOrdem = item.originalOrdem != novaOrdem
-                                        if (!mudouSeries && !mudouReps && !mudouDuracao && !mudouCarga && !mudouDesc && !mudouOrdem) {
+                                        if (!mudouSeries && !mudouReps && !mudouDuracao && !mudouDistancia && !mudouCarga && !mudouDesc && !mudouOrdem) {
                                             return@mapNotNull null
                                         }
                                         TreinoExercicioPatchUpdate(
@@ -432,6 +440,7 @@ fun TreinoFormScreen(
                                             series = if (mudouSeries) item.series else null,
                                             repeticoes = if (mudouReps) item.repeticoes else null,
                                             duracaoSugeridaSegundos = if (mudouDuracao) item.duracaoSugeridaSegundos else null,
+                                            distanciaSugeridaMetros = if (mudouDistancia) item.distanciaSugeridaMetros else null,
                                             cargaSugerida = if (mudouCarga) item.cargaSugerida else null,
                                             cargaSugeridaExplicitamenteNula =
                                                 mudouCarga && item.cargaSugerida == null,
@@ -534,7 +543,7 @@ fun TreinoFormScreen(
             exercicioNome = pendente.nome,
             tipoExercicio = tipoP,
             inicial = null,
-            onConfirmar = { series, reps, duracao, carga, descanso ->
+            onConfirmar = { series, reps, duracao, distancia, carga, descanso ->
                 val novo = ItemForm(
                     vinculoId = null,
                     exercicioId = pendente.id,
@@ -544,6 +553,7 @@ fun TreinoFormScreen(
                     series = series,
                     repeticoes = reps,
                     duracaoSugeridaSegundos = duracao,
+                    distanciaSugeridaMetros = distancia,
                     cargaSugerida = carga,
                     tempoDescansoSegundos = descanso,
                     ordemExecucao = itens.size + 1
@@ -562,13 +572,14 @@ fun TreinoFormScreen(
             exercicioNome = edit.exercicioNome,
             tipoExercicio = edit.tipoExercicio,
             inicial = edit,
-            onConfirmar = { series, reps, duracao, carga, descanso ->
+            onConfirmar = { series, reps, duracao, distancia, carga, descanso ->
                 itens = itens.map {
                     if (it.exercicioId == edit.exercicioId) {
                         it.copy(
                             series = series,
                             repeticoes = reps,
                             duracaoSugeridaSegundos = duracao,
+                            distanciaSugeridaMetros = distancia,
                             cargaSugerida = carga,
                             tempoDescansoSegundos = descanso
                         )
@@ -673,13 +684,25 @@ private fun ItemTreinoCard(
 ) {
     val colors = LocalAcademiaColors.current
     val eTempo = item.tipoExercicio == TipoExercicio.TEMPO
-    val corTipo = if (eTempo) colors.featureOrange else colors.featureBlue
-    val descricaoMetrica = if (eTempo) {
-        val dur = item.duracaoSugeridaSegundos
-        if (dur != null) "${item.series}x ${formatarSegundos(dur)}" else "${item.series}x (sem meta)"
-    } else {
-        "${item.series}x ${item.repeticoes.orEmpty()}" +
-            (item.cargaSugerida?.let { " • ${it} kg" } ?: "")
+    val eDistancia = item.tipoExercicio == TipoExercicio.DISTANCIA
+    val corTipo = when {
+        eTempo -> colors.featureOrange
+        eDistancia -> colors.featureGreen
+        else -> colors.featureBlue
+    }
+    val descricaoMetrica = when {
+        eTempo -> {
+            val dur = item.duracaoSugeridaSegundos
+            if (dur != null) "${item.series}x ${formatarSegundos(dur)}" else "${item.series}x (sem meta)"
+        }
+        eDistancia -> {
+            val dist = item.distanciaSugeridaMetros
+            if (dist != null) "${item.series}x ${formatarMetros(dist)}" else "${item.series}x (sem meta)"
+        }
+        else -> {
+            "${item.series}x ${item.repeticoes.orEmpty()}" +
+                (item.cargaSugerida?.let { " • ${it} kg" } ?: "")
+        }
     }
 
     Card(
@@ -702,7 +725,11 @@ private fun ItemTreinoCard(
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
-                        if (eTempo) Icons.Filled.Timer else Icons.Filled.Refresh,
+                        when {
+                            eTempo -> Icons.Filled.Timer
+                            eDistancia -> Icons.AutoMirrored.Filled.DirectionsRun
+                            else -> Icons.Filled.Refresh
+                        },
                         null, tint = corTipo, modifier = Modifier.size(18.dp)
                     )
                 }
@@ -737,15 +764,17 @@ private fun DialogoConfigurarItem(
     exercicioNome: String,
     tipoExercicio: TipoExercicio = TipoExercicio.REPETICAO,
     inicial: ItemForm?,
-    onConfirmar: (series: Int, repeticoes: String?, duracaoSegundos: Int?, cargaSugerida: Double?, tempoDescansoSegundos: Int) -> Unit,
+    onConfirmar: (series: Int, repeticoes: String?, duracaoSegundos: Int?, distanciaMetros: Int?, cargaSugerida: Double?, tempoDescansoSegundos: Int) -> Unit,
     onCancelar: () -> Unit
 ) {
     val colors = LocalAcademiaColors.current
     val eTempo = tipoExercicio == TipoExercicio.TEMPO
+    val eDistancia = tipoExercicio == TipoExercicio.DISTANCIA
     var seriesText by remember { mutableStateOf(inicial?.series?.toString() ?: "3") }
     var repsText by remember { mutableStateOf(inicial?.repeticoes ?: "10-12") }
     var duracaoText by remember { mutableStateOf(inicial?.duracaoSugeridaSegundos?.toString() ?: "") }
-    var mostrarCarga by remember { mutableStateOf(eTempo && inicial?.cargaSugerida != null || !eTempo) }
+    var distanciaText by remember { mutableStateOf(inicial?.distanciaSugeridaMetros?.toString() ?: "") }
+    var mostrarCarga by remember { mutableStateOf((eTempo || eDistancia) && inicial?.cargaSugerida != null || (!eTempo && !eDistancia)) }
     var cargaText by remember { mutableStateOf(inicial?.cargaSugerida?.toString().orEmpty()) }
     var descansoText by remember { mutableStateOf(inicial?.tempoDescansoSegundos?.toString() ?: "60") }
     var erro by remember { mutableStateOf<String?>(null) }
@@ -770,8 +799,8 @@ private fun DialogoConfigurarItem(
                     modifier = Modifier.fillMaxWidth(),
                     colors = camposCoresTreino()
                 )
-                if (eTempo) {
-                    OutlinedTextField(
+                when {
+                    eTempo -> OutlinedTextField(
                         value = duracaoText,
                         onValueChange = { if (it.all(Char::isDigit) || it.isEmpty()) duracaoText = it },
                         label = { Text("Duração sugerida (segundos)") },
@@ -781,8 +810,17 @@ private fun DialogoConfigurarItem(
                         modifier = Modifier.fillMaxWidth(),
                         colors = camposCoresTreino()
                     )
-                } else {
-                    OutlinedTextField(
+                    eDistancia -> OutlinedTextField(
+                        value = distanciaText,
+                        onValueChange = { if (it.all(Char::isDigit) || it.isEmpty()) distanciaText = it },
+                        label = { Text("Distância sugerida (metros)") },
+                        placeholder = { Text("Ex: 5000") },
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = camposCoresTreino()
+                    )
+                    else -> OutlinedTextField(
                         value = repsText,
                         onValueChange = { repsText = it },
                         label = { Text("Repetições (ex: 8-12)") },
@@ -791,14 +829,14 @@ private fun DialogoConfigurarItem(
                         colors = camposCoresTreino()
                     )
                 }
-                if (eTempo && !mostrarCarga) {
+                if ((eTempo || eDistancia) && !mostrarCarga) {
                     TextButton(onClick = { mostrarCarga = true }) {
                         Icon(Icons.Filled.Add, null, modifier = androidx.compose.ui.Modifier.size(16.dp))
                         Spacer(Modifier.size(4.dp))
                         Text("Adicionar carga (opcional)", color = colors.textSecondary)
                     }
                 }
-                if (!eTempo || mostrarCarga) {
+                if (!eTempo && !eDistancia || mostrarCarga) {
                     OutlinedTextField(
                         value = cargaText,
                         onValueChange = { txt ->
@@ -831,16 +869,19 @@ private fun DialogoConfigurarItem(
                     val descanso = descansoText.toIntOrNull()
                     val carga = cargaText.takeIf { it.isNotBlank() }?.toDoubleOrNull()
                     val duracao = duracaoText.takeIf { it.isNotBlank() }?.toIntOrNull()
+                    val distancia = distanciaText.takeIf { it.isNotBlank() }?.toIntOrNull()
                     when {
                         series == null || series < 1 || series > 20 -> erro = "Séries entre 1 e 20"
-                        !eTempo && repsText.isBlank() -> erro = "Informe as repetições"
+                        !eTempo && !eDistancia && repsText.isBlank() -> erro = "Informe as repetições"
                         eTempo && duracaoText.isNotBlank() && (duracao == null || duracao < 1) -> erro = "Duração inválida"
+                        eDistancia && distanciaText.isNotBlank() && (distancia == null || distancia < 1) -> erro = "Distância inválida"
                         descanso == null || descanso < 0 || descanso > 3600 -> erro = "Descanso entre 0 e 3600s"
                         cargaText.isNotBlank() && (carga == null || carga <= 0) -> erro = "Carga deve ser positiva"
                         else -> onConfirmar(
                             series,
-                            if (!eTempo) repsText.trim() else null,
+                            if (!eTempo && !eDistancia) repsText.trim() else null,
                             if (eTempo) duracao else null,
+                            if (eDistancia) distancia else null,
                             carga,
                             descanso
                         )
@@ -866,4 +907,9 @@ private fun formatarSegundos(s: Int): String {
     val min = s / 60
     val rest = s % 60
     return if (rest == 0) "${min}min" else "${min}min ${rest}s"
+}
+
+private fun formatarMetros(m: Int): String {
+    if (m <= 0) return "0m"
+    return if (m >= 1000) "${"%.1f".format(m / 1000.0)}km" else "${m}m"
 }

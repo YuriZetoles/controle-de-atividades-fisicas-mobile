@@ -24,6 +24,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.DirectionsRun
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AttachFile
 import androidx.compose.material.icons.filled.Build
@@ -440,9 +441,15 @@ fun ExercicioFormScreen(
                 )
             },
             text = {
+                val tipoAnteriorLabel = when (tipoOriginal) {
+                    TipoExercicio.REPETICAO -> "repetições/carga"
+                    TipoExercicio.TEMPO -> "tempo"
+                    TipoExercicio.DISTANCIA -> "distância"
+                    null -> "anterior"
+                }
                 Text(
                     "Séries registradas para este exercício usam as métricas do tipo anterior " +
-                        "(${if (tipoOriginal == TipoExercicio.REPETICAO) "repetições/carga" else "tempo"}). " +
+                        "($tipoAnteriorLabel). " +
                         "O sistema não guarda qual tipo estava ativo em cada sessão — " +
                         "esses dados continuarão existindo mas podem aparecer inconsistentes nos gráficos de progressão.",
                     color = colors.textSecondary,
@@ -857,13 +864,28 @@ private fun SeletorTipoExercicio(
                     modifier = Modifier.weight(1f).fillMaxHeight(),
                     onClick = { onSelecionar(TipoExercicio.TEMPO) }
                 )
+                TipoOpcao(
+                    selecionado = tipoAtual == TipoExercicio.DISTANCIA,
+                    icone = Icons.AutoMirrored.Filled.DirectionsRun,
+                    titulo = "Distância",
+                    subtitulo = "Meta em metros",
+                    corAtiva = colors.primary,
+                    modifier = Modifier.weight(1f).fillMaxHeight(),
+                    onClick = { onSelecionar(TipoExercicio.DISTANCIA) }
+                )
             }
-            if (tipoAtual == TipoExercicio.TEMPO) {
-                Text(
+            when (tipoAtual) {
+                TipoExercicio.TEMPO -> Text(
                     "Ideal para prancha, isometria, wall sit e similares.",
                     color = colors.textSecondary,
                     style = MaterialTheme.typography.labelMedium
                 )
+                TipoExercicio.DISTANCIA -> Text(
+                    "Ideal para corrida, caminhada, natação e ciclismo.",
+                    color = colors.textSecondary,
+                    style = MaterialTheme.typography.labelMedium
+                )
+                else -> Unit
             }
         }
     }

@@ -45,6 +45,7 @@ data class TreinoExercicioDetalheData(
     @SerializedName("series") val series: Int,
     @SerializedName("repeticoes") val repeticoes: String? = null,
     @SerializedName("duracao_sugerida_segundos") val duracaoSugeridaSegundos: Int? = null,
+    @SerializedName("distancia_sugerida_metros") val distanciaSugeridaMetros: Int? = null,
     @SerializedName("carga_sugerida") val cargaSugerida: String? = null,
     @SerializedName("tempo_descanso_segundos") val tempoDescansoSegundos: Int,
     @SerializedName("ordem_execucao") val ordemExecucao: Int,
@@ -108,6 +109,7 @@ data class TreinoExercicioItemRequest(
     @SerializedName("series") val series: Int,
     @SerializedName("repeticoes") val repeticoes: String? = null,
     @SerializedName("duracao_sugerida_segundos") val duracaoSugeridaSegundos: Int? = null,
+    @SerializedName("distancia_sugerida_metros") val distanciaSugeridaMetros: Int? = null,
     @SerializedName("carga_sugerida") val cargaSugerida: Double? = null,
     @SerializedName("tempo_descanso_segundos") val tempoDescansoSegundos: Int,
     @SerializedName("ordem_execucao") val ordemExecucao: Int

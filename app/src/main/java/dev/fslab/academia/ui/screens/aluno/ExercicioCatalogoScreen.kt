@@ -19,6 +19,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.DirectionsRun
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.PlayCircle
@@ -31,6 +32,7 @@ import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Public
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.AssistChipDefaults
 import androidx.compose.material3.Button
@@ -69,6 +71,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import dev.fslab.academia.model.EscopoExercicio
 import dev.fslab.academia.model.ExercicioData
 import dev.fslab.academia.model.ExercicioMusculoData
+import dev.fslab.academia.model.TipoExercicio
 import dev.fslab.academia.ui.components.AcademiaAppBar
 import dev.fslab.academia.ui.components.AparelhoSelectionBottomSheet
 import dev.fslab.academia.ui.components.AppNavigationBar
@@ -470,11 +473,31 @@ private fun ExercicioCard(
                 }
             }
 
-            Text(
-                "${exercicio.musculos.size} músculos • $primarios primários • ${exercicio.aparelhos.size} aparelhos",
-                color = colors.textSecondary,
-                style = MaterialTheme.typography.labelMedium
-            )
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Text(
+                    "${exercicio.musculos.size} músculos • $primarios primários • ${exercicio.aparelhos.size} aparelhos",
+                    color = colors.textSecondary,
+                    style = MaterialTheme.typography.labelMedium,
+                    modifier = Modifier.weight(1f)
+                )
+                val (tipoLabel, tipoIcone, tipoCor) = when (exercicio.tipo) {
+                    TipoExercicio.TEMPO -> Triple("Tempo", Icons.Filled.Timer, colors.featureOrange)
+                    TipoExercicio.DISTANCIA -> Triple("Distância", Icons.AutoMirrored.Filled.DirectionsRun, colors.featureGreen)
+                    else -> Triple("Repetição", Icons.Filled.Refresh, colors.featureBlue)
+                }
+                SuggestionChip(
+                    onClick = {},
+                    label = { Text(tipoLabel, style = MaterialTheme.typography.labelSmall) },
+                    icon = { Icon(tipoIcone, null, modifier = Modifier.size(14.dp), tint = tipoCor) },
+                    colors = SuggestionChipDefaults.suggestionChipColors(
+                        containerColor = tipoCor.copy(alpha = 0.12f),
+                        labelColor = tipoCor
+                    )
+                )
+            }
 
             if (exercicio.musculos.isNotEmpty()) {
                 Row(
