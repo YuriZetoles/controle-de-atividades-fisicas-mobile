@@ -54,6 +54,7 @@ import dev.fslab.academia.model.AlunoData
 import dev.fslab.academia.model.TreinoData
 import dev.fslab.academia.ui.components.AcademiaAppBar
 import dev.fslab.academia.ui.theme.LocalAcademiaColors
+import dev.fslab.academia.ui.viewmodel.DesvincularAlunoState
 import dev.fslab.academia.ui.viewmodel.TreinoDeletarUiState
 import dev.fslab.academia.ui.viewmodel.TreinoViewModel
 import dev.fslab.academia.ui.viewmodel.TreinadorAlunoDetalheUiState
@@ -71,6 +72,7 @@ fun TreinadorAlunoDetalheScreen(
     onBack: () -> Unit,
     onMontarTreino: (String, String) -> Unit,
     onAbrirTreino: (String) -> Unit,
+    onDesvinculado: () -> Unit = {},
     viewModel: TreinadorAlunoDetalheViewModel = viewModel(),
     treinoViewModel: TreinoViewModel = viewModel(),
     autoLoad: Boolean = true
@@ -78,7 +80,9 @@ fun TreinadorAlunoDetalheScreen(
     val colors = LocalAcademiaColors.current
     val uiState by viewModel.uiState.collectAsState()
     val deletarState by treinoViewModel.deletarState.collectAsState()
+    val desvincularState by viewModel.desvincularState.collectAsState()
     val treinoParaExcluir = remember { mutableStateOf<TreinoData?>(null) }
+    val mostrarDialogDesvincular = remember { mutableStateOf(false) }
 
     LaunchedEffect(alunoId, autoLoad) {
         if (autoLoad) {
@@ -91,6 +95,13 @@ fun TreinadorAlunoDetalheScreen(
             treinoViewModel.resetDeletar()
             treinoParaExcluir.value = null
             viewModel.carregar(alunoId)
+        }
+    }
+
+    LaunchedEffect(desvincularState) {
+        if (desvincularState is DesvincularAlunoState.Success) {
+            viewModel.resetDesvincular()
+            onDesvinculado()
         }
     }
 
@@ -134,11 +145,58 @@ fun TreinadorAlunoDetalheScreen(
                     modifier = Modifier.padding(innerPadding),
                     onMontarTreino = { onMontarTreino(state.aluno.id, state.aluno.nome) },
                     onAbrirTreino = onAbrirTreino,
-                    onExcluirTreino = { treino -> treinoParaExcluir.value = treino }
+                    onExcluirTreino = { treino -> treinoParaExcluir.value = treino },
+                    onDesvincularAluno = { mostrarDialogDesvincular.value = true }
                 )
             }
             else -> Unit
         }
+    }
+
+    if (mostrarDialogDesvincular.value) {
+        val carregandoDesvincular = desvincularState is DesvincularAlunoState.Loading
+        AlertDialog(
+            onDismissRequest = { if (!carregandoDesvincular) mostrarDialogDesvincular.value = false },
+            containerColor = colors.surface,
+            title = { Text("Desvincular aluno?", color = colors.textPrimary) },
+            text = {
+                Text(
+                    "O aluno perderá acesso aos treinos que você montou para ele.",
+                    color = colors.textSecondary
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = { viewModel.desvincularAluno(alunoId) },
+                    enabled = !carregandoDesvincular,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = colors.error,
+                        contentColor = colors.textOnPrimary
+                    )
+                ) { Text(if (carregandoDesvincular) "Desvinculando..." else "Desvincular") }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = { if (!carregandoDesvincular) mostrarDialogDesvincular.value = false },
+                    enabled = !carregandoDesvincular
+                ) { Text("Cancelar", color = colors.textSecondary) }
+            }
+        )
+    }
+
+    val desvincularErro = desvincularState as? DesvincularAlunoState.Error
+    if (desvincularErro != null) {
+        AlertDialog(
+            onDismissRequest = { viewModel.resetDesvincular() },
+            containerColor = colors.surface,
+            title = { Text("Falha ao desvincular", color = colors.textPrimary) },
+            text = { Text(desvincularErro.message, color = colors.textSecondary) },
+            confirmButton = {
+                TextButton(onClick = { viewModel.resetDesvincular() }) {
+                    Text("OK", color = colors.primary)
+                }
+            }
+        )
     }
 
     val treinoExcluir = treinoParaExcluir.value
@@ -198,7 +256,8 @@ private fun AlunoDetalheContent(
     modifier: Modifier = Modifier,
     onMontarTreino: () -> Unit,
     onAbrirTreino: (String) -> Unit,
-    onExcluirTreino: (TreinoData) -> Unit
+    onExcluirTreino: (TreinoData) -> Unit,
+    onDesvincularAluno: () -> Unit = {}
 ) {
     val colors = LocalAcademiaColors.current
     val hoje = LocalDate.now()
@@ -389,6 +448,23 @@ private fun AlunoDetalheContent(
                     text = "Montar treino para ${aluno.nome.split(" ").firstOrNull()}",
                     color = Color.Black,
                     fontWeight = FontWeight.Bold
+                )
+            }
+            Spacer(modifier = Modifier.height(8.dp))
+            androidx.compose.material3.OutlinedButton(
+                onClick = onDesvincularAluno,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(54.dp),
+                shape = RoundedCornerShape(14.dp),
+                border = androidx.compose.foundation.BorderStroke(1.dp, colors.error.copy(alpha = 0.5f))
+            ) {
+                Icon(Icons.Default.PersonOff, null, tint = colors.error, modifier = Modifier.size(18.dp))
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = "Desvincular aluno",
+                    color = colors.error,
+                    fontWeight = FontWeight.SemiBold
                 )
             }
         }

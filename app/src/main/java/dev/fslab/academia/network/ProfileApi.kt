@@ -4,6 +4,7 @@ import dev.fslab.academia.model.AlunoProfileResponse
 import dev.fslab.academia.model.TreinadorProfileResponse
 import okhttp3.MultipartBody
 import okhttp3.RequestBody
+import retrofit2.http.DELETE
 import retrofit2.http.GET
 import retrofit2.http.Multipart
 import retrofit2.http.PATCH
@@ -33,6 +34,9 @@ interface ProfileApi {
         @Part foto: MultipartBody.Part? = null
     ): AlunoProfileResponse
 
+    @DELETE("alunos/me/treinador")
+    suspend fun desvincularTreinador(): retrofit2.Response<Unit>
+
     // ── Treinador ─────────────────────────────────────────────────────────────
 
     @GET("treinadores/me")
@@ -52,4 +56,7 @@ interface ProfileApi {
         @Part("data") data: RequestBody,
         @Part foto: MultipartBody.Part? = null
     ): TreinadorProfileResponse
+
+    @DELETE("treinadores/me/alunos/{alunoId}")
+    suspend fun desvincularAluno(@Path("alunoId") alunoId: String): retrofit2.Response<Unit>
 }

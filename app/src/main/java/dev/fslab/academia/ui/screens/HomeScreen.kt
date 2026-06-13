@@ -27,6 +27,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.Chat
 import androidx.compose.material.icons.filled.FitnessCenter
@@ -75,6 +76,7 @@ import dev.fslab.academia.ui.components.MaisMenuBottomSheet
 import dev.fslab.academia.ui.components.alunoNavItems
 import dev.fslab.academia.ui.theme.AcademiaTheme
 import dev.fslab.academia.ui.theme.LocalAcademiaColors
+import dev.fslab.academia.ui.viewmodel.AlunoVinculoState
 import dev.fslab.academia.ui.viewmodel.HomeUiState
 import dev.fslab.academia.ui.viewmodel.HomeViewModel
 import java.time.LocalDate
@@ -132,6 +134,7 @@ fun HomeScreen(
     temSessaoAtiva: Boolean = false,
     onIniciarTreino: (String) -> Unit = {},
     onAbrirTreinoDoDia: (String) -> Unit = {},
+    onBuscarTreinador: () -> Unit = {},
     homeViewModel: HomeViewModel = viewModel()
 ) {
     val colors = LocalAcademiaColors.current
@@ -139,6 +142,7 @@ fun HomeScreen(
     var mostrarMaisMenu by remember { mutableStateOf(false) }
     val homeUiState by homeViewModel.uiState.collectAsState()
     val streakState by homeViewModel.streak.collectAsState()
+    val vinculoState by homeViewModel.vinculoState.collectAsState()
 
     LaunchedEffect(Unit) {
         homeViewModel.carregarDados()
@@ -380,6 +384,105 @@ fun HomeScreen(
             }
 
             Spacer(modifier = Modifier.height(24.dp))
+
+            // ── Banner Treinador ──────────────────────────────────────────────
+            when (val vinculo = vinculoState) {
+                is AlunoVinculoState.SemTreinador -> {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(16.dp))
+                            .background(colors.primary.copy(alpha = 0.08f))
+                            .border(1.dp, colors.primary.copy(alpha = 0.25f), RoundedCornerShape(16.dp))
+                            .clickable { onBuscarTreinador() }
+                            .padding(16.dp)
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Box(
+                                modifier = Modifier
+                                    .size(40.dp)
+                                    .clip(CircleShape)
+                                    .background(colors.primary.copy(alpha = 0.15f)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    Icons.Filled.Person,
+                                    contentDescription = null,
+                                    tint = colors.primary,
+                                    modifier = Modifier.size(22.dp)
+                                )
+                            }
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Column(Modifier.weight(1f)) {
+                                Text(
+                                    text = "ENCONTRE SEU TREINADOR",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    color = colors.primary,
+                                    letterSpacing = 1.sp
+                                )
+                                Text(
+                                    text = "Busque um profissional para te acompanhar",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = colors.textPrimary,
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                            }
+                            Icon(
+                                Icons.AutoMirrored.Filled.ArrowForward,
+                                contentDescription = null,
+                                tint = colors.primary,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(16.dp))
+                }
+                is AlunoVinculoState.SolicitacaoPendente -> {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(16.dp))
+                            .background(colors.featureOrange.copy(alpha = 0.08f))
+                            .border(1.dp, colors.featureOrange.copy(alpha = 0.3f), RoundedCornerShape(16.dp))
+                            .padding(16.dp)
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Box(
+                                modifier = Modifier
+                                    .size(40.dp)
+                                    .clip(CircleShape)
+                                    .background(colors.featureOrange.copy(alpha = 0.15f)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                CircularProgressIndicator(
+                                    color = colors.featureOrange,
+                                    modifier = Modifier.size(22.dp),
+                                    strokeWidth = 2.dp
+                                )
+                            }
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Column(Modifier.weight(1f)) {
+                                Text(
+                                    text = "SOLICITAÇÃO ENVIADA",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    color = colors.featureOrange,
+                                    letterSpacing = 1.sp
+                                )
+                                Text(
+                                    text = "Aguardando resposta de ${vinculo.treinadorNome}",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = colors.textPrimary,
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                            }
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(16.dp))
+                }
+                else -> Unit
+            }
 
             // ── Banner sessão em andamento ─────────────────────────────────────
             if (temSessaoAtiva) {

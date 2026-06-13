@@ -138,6 +138,9 @@ fun ProfileScreen(
                     onDeleteAccount = {
                         viewModel.deletarConta(context, onSuccess = onBack)
                     },
+                    onDesvincularTreinador = {
+                        viewModel.desvincularTreinador(onSuccess = {})
+                    },
                     modifier = Modifier.padding(padding)
                 )
             }
@@ -182,6 +185,7 @@ fun AlunoProfileContent(
     isUpdating: Boolean,
     onSave: (AlunoProfileData, Uri?, List<String>) -> Unit,
     onDeleteAccount: () -> Unit,
+    onDesvincularTreinador: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     val colors = LocalAcademiaColors.current
@@ -194,12 +198,13 @@ fun AlunoProfileContent(
     var altura by remember { mutableStateOf(profile.alturaCm?.toString().orEmpty()) }
     var generoSelected by remember { mutableStateOf(profile.sexo ?: Genero.MASCULINO) }
     var imageUri by remember { mutableStateOf<Uri?>(null) }
-    
+
     var showDeleteDialog by remember { mutableStateOf(false) }
+    var showDesvincularDialog by remember { mutableStateOf(false) }
 
     // IDs das academias selecionadas
-    var selectedAcademias by remember { 
-        mutableStateOf(profile.academias?.map { it.id }?.toSet() ?: emptySet()) 
+    var selectedAcademias by remember {
+        mutableStateOf(profile.academias?.map { it.id }?.toSet() ?: emptySet())
     }
 
     // Resetar prévia local quando a foto do servidor mudar (sucesso do upload)
@@ -327,6 +332,17 @@ fun AlunoProfileContent(
             }
         }
 
+        if (onDesvincularTreinador != null && profile.treinadorId != null) {
+            Spacer(modifier = Modifier.height(12.dp))
+            TextButton(
+                onClick = { showDesvincularDialog = true },
+                modifier = Modifier.fillMaxWidth(),
+                enabled = !isUpdating
+            ) {
+                Text("DESVINCULAR TREINADOR", color = colors.error, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+            }
+        }
+
         Spacer(modifier = Modifier.height(32.dp))
 
         TextButton(
@@ -338,13 +354,35 @@ fun AlunoProfileContent(
         }
     }
 
+    if (showDesvincularDialog) {
+        AlertDialog(
+            onDismissRequest = { showDesvincularDialog = false },
+            containerColor = colors.surface,
+            title = { Text("Desvincular treinador?", color = colors.textPrimary) },
+            text = { Text("Você perderá o acesso aos treinos do seu treinador atual.", color = colors.textSecondary) },
+            confirmButton = {
+                TextButton(onClick = {
+                    showDesvincularDialog = false
+                    onDesvincularTreinador?.invoke()
+                }) {
+                    Text("DESVINCULAR", color = colors.error, fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDesvincularDialog = false }) {
+                    Text("CANCELAR", color = colors.textPrimary)
+                }
+            }
+        )
+    }
+
     if (showDeleteDialog) {
         AlertDialog(
             onDismissRequest = { showDeleteDialog = false },
             title = { Text("Excluir Conta", color = Color.White) },
             text = { Text("Esta ação é irreversível. Deseja mesmo excluir sua conta e todos os seus dados?", color = colors.textSecondary) },
             confirmButton = {
-                TextButton(onClick = { 
+                TextButton(onClick = {
                     showDeleteDialog = false
                     onDeleteAccount()
                 }) {

@@ -26,10 +26,20 @@ sealed interface TreinadorAlunoDetalheUiState {
     data class Error(val message: String) : TreinadorAlunoDetalheUiState
 }
 
+sealed interface DesvincularAlunoState {
+    data object Idle : DesvincularAlunoState
+    data object Loading : DesvincularAlunoState
+    data object Success : DesvincularAlunoState
+    data class Error(val message: String) : DesvincularAlunoState
+}
+
 class TreinadorAlunoDetalheViewModel : ViewModel() {
 
     private val _uiState = MutableStateFlow<TreinadorAlunoDetalheUiState>(TreinadorAlunoDetalheUiState.Idle)
     val uiState: StateFlow<TreinadorAlunoDetalheUiState> = _uiState.asStateFlow()
+
+    private val _desvincularState = MutableStateFlow<DesvincularAlunoState>(DesvincularAlunoState.Idle)
+    val desvincularState: StateFlow<DesvincularAlunoState> = _desvincularState.asStateFlow()
 
     fun carregar(alunoId: String) {
         viewModelScope.launch {
@@ -82,6 +92,22 @@ class TreinadorAlunoDetalheViewModel : ViewModel() {
                 _uiState.value = TreinadorAlunoDetalheUiState.Error(e.message ?: "Erro desconhecido")
             }
         }
+    }
+
+    fun desvincularAluno(alunoId: String) {
+        viewModelScope.launch {
+            _desvincularState.value = DesvincularAlunoState.Loading
+            try {
+                RetrofitClient.profileApi.desvincularAluno(alunoId)
+                _desvincularState.value = DesvincularAlunoState.Success
+            } catch (e: Exception) {
+                _desvincularState.value = DesvincularAlunoState.Error(e.message ?: "Erro ao desvincular")
+            }
+        }
+    }
+
+    fun resetDesvincular() {
+        _desvincularState.value = DesvincularAlunoState.Idle
     }
 
     private fun mapDiaApiParaIndex(value: String): Int? = when (value.uppercase()) {
