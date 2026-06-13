@@ -52,6 +52,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
+import androidx.activity.compose.BackHandler
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
@@ -89,6 +90,10 @@ fun CadastroScreen(
     val colors = LocalAcademiaColors.current
     val uiState by viewModel.uiState.collectAsState()
     val academias by viewModel.academias.collectAsState()
+
+    BackHandler(enabled = uiState is CadastroUiState.DadosPerfil) {
+        viewModel.voltarParaConta()
+    }
 
     Scaffold(
         topBar = {
