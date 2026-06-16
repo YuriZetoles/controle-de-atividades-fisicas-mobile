@@ -170,6 +170,21 @@ class PerfilViewModel : ViewModel() {
         }
     }
 
+    fun desvincularTreinador(onSuccess: () -> Unit) {
+        viewModelScope.launch {
+            _isUpdating.value = true
+            try {
+                RetrofitClient.profileApi.desvincularTreinador()
+                carregarPerfil(UserTipo.ALUNO)
+                onSuccess()
+            } catch (e: Exception) {
+                android.util.Log.e("PerfilViewModel", "Erro ao desvincular treinador: ${e.message}")
+            } finally {
+                _isUpdating.value = false
+            }
+        }
+    }
+
     fun deletarConta(context: Context, onSuccess: () -> Unit) {
         viewModelScope.launch {
             _uiState.value = PerfilUiState.Deletando

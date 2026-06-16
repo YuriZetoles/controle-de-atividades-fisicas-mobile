@@ -24,10 +24,14 @@ import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.FitnessCenter
 import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.Insights
 import androidx.compose.material.icons.filled.PersonOff
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -53,7 +57,14 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import dev.fslab.academia.model.AlunoData
 import dev.fslab.academia.model.TreinoData
 import dev.fslab.academia.ui.components.AcademiaAppBar
+import dev.fslab.academia.ui.components.ExerciciosFrequentesSection
+import dev.fslab.academia.ui.components.GruposMusculareSection
+import dev.fslab.academia.ui.components.SecaoEvolucaoPeriodo
+import dev.fslab.academia.ui.components.StatsSection
 import dev.fslab.academia.ui.theme.LocalAcademiaColors
+import dev.fslab.academia.ui.viewmodel.AlunoEstatisticasUiState
+import dev.fslab.academia.ui.viewmodel.DesvincularAlunoState
+import dev.fslab.academia.ui.viewmodel.PeriodoEstatisticasAluno
 import dev.fslab.academia.ui.viewmodel.TreinoDeletarUiState
 import dev.fslab.academia.ui.viewmodel.TreinoViewModel
 import dev.fslab.academia.ui.viewmodel.TreinadorAlunoDetalheUiState
@@ -71,6 +82,7 @@ fun TreinadorAlunoDetalheScreen(
     onBack: () -> Unit,
     onMontarTreino: (String, String) -> Unit,
     onAbrirTreino: (String) -> Unit,
+    onDesvinculado: () -> Unit = {},
     viewModel: TreinadorAlunoDetalheViewModel = viewModel(),
     treinoViewModel: TreinoViewModel = viewModel(),
     autoLoad: Boolean = true
@@ -78,7 +90,11 @@ fun TreinadorAlunoDetalheScreen(
     val colors = LocalAcademiaColors.current
     val uiState by viewModel.uiState.collectAsState()
     val deletarState by treinoViewModel.deletarState.collectAsState()
+    val desvincularState by viewModel.desvincularState.collectAsState()
+    val estatisticasState by viewModel.estatisticasState.collectAsState()
+    val periodoEstatisticas by viewModel.periodoEstatisticas.collectAsState()
     val treinoParaExcluir = remember { mutableStateOf<TreinoData?>(null) }
+    val mostrarDialogDesvincular = remember { mutableStateOf(false) }
 
     LaunchedEffect(alunoId, autoLoad) {
         if (autoLoad) {
@@ -91,6 +107,13 @@ fun TreinadorAlunoDetalheScreen(
             treinoViewModel.resetDeletar()
             treinoParaExcluir.value = null
             viewModel.carregar(alunoId)
+        }
+    }
+
+    LaunchedEffect(desvincularState) {
+        if (desvincularState is DesvincularAlunoState.Success) {
+            viewModel.resetDesvincular()
+            onDesvinculado()
         }
     }
 
@@ -131,14 +154,64 @@ fun TreinadorAlunoDetalheScreen(
                     treinos = state.treinos,
                     diasTreino = state.diasTreino,
                     ultimoTreino = state.ultimoTreino,
+                    estatisticasState = estatisticasState,
+                    periodoEstatisticas = periodoEstatisticas,
                     modifier = Modifier.padding(innerPadding),
                     onMontarTreino = { onMontarTreino(state.aluno.id, state.aluno.nome) },
                     onAbrirTreino = onAbrirTreino,
-                    onExcluirTreino = { treino -> treinoParaExcluir.value = treino }
+                    onExcluirTreino = { treino -> treinoParaExcluir.value = treino },
+                    onDesvincularAluno = { mostrarDialogDesvincular.value = true },
+                    onSelecionarPeriodoEstatisticas = { periodo -> viewModel.selecionarPeriodoEstatisticas(state.aluno.id, periodo) }
                 )
             }
             else -> Unit
         }
+    }
+
+    if (mostrarDialogDesvincular.value) {
+        val carregandoDesvincular = desvincularState is DesvincularAlunoState.Loading
+        AlertDialog(
+            onDismissRequest = { if (!carregandoDesvincular) mostrarDialogDesvincular.value = false },
+            containerColor = colors.surface,
+            title = { Text("Desvincular aluno?", color = colors.textPrimary) },
+            text = {
+                Text(
+                    "O aluno perderá acesso aos treinos que você montou para ele.",
+                    color = colors.textSecondary
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = { viewModel.desvincularAluno(alunoId) },
+                    enabled = !carregandoDesvincular,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = colors.error,
+                        contentColor = colors.textOnPrimary
+                    )
+                ) { Text(if (carregandoDesvincular) "Desvinculando..." else "Desvincular") }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = { if (!carregandoDesvincular) mostrarDialogDesvincular.value = false },
+                    enabled = !carregandoDesvincular
+                ) { Text("Cancelar", color = colors.textSecondary) }
+            }
+        )
+    }
+
+    val desvincularErro = desvincularState as? DesvincularAlunoState.Error
+    if (desvincularErro != null) {
+        AlertDialog(
+            onDismissRequest = { viewModel.resetDesvincular() },
+            containerColor = colors.surface,
+            title = { Text("Falha ao desvincular", color = colors.textPrimary) },
+            text = { Text(desvincularErro.message, color = colors.textSecondary) },
+            confirmButton = {
+                TextButton(onClick = { viewModel.resetDesvincular() }) {
+                    Text("OK", color = colors.primary)
+                }
+            }
+        )
     }
 
     val treinoExcluir = treinoParaExcluir.value
@@ -195,10 +268,14 @@ private fun AlunoDetalheContent(
     treinos: List<TreinoData>,
     diasTreino: Set<Int>,
     ultimoTreino: LocalDate?,
+    estatisticasState: AlunoEstatisticasUiState,
+    periodoEstatisticas: PeriodoEstatisticasAluno,
     modifier: Modifier = Modifier,
     onMontarTreino: () -> Unit,
     onAbrirTreino: (String) -> Unit,
-    onExcluirTreino: (TreinoData) -> Unit
+    onExcluirTreino: (TreinoData) -> Unit,
+    onDesvincularAluno: () -> Unit = {},
+    onSelecionarPeriodoEstatisticas: (PeriodoEstatisticasAluno) -> Unit
 ) {
     val colors = LocalAcademiaColors.current
     val hoje = LocalDate.now()
@@ -390,6 +467,102 @@ private fun AlunoDetalheContent(
                     color = Color.Black,
                     fontWeight = FontWeight.Bold
                 )
+            }
+            Spacer(modifier = Modifier.height(8.dp))
+            androidx.compose.material3.OutlinedButton(
+                onClick = onDesvincularAluno,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(54.dp),
+                shape = RoundedCornerShape(14.dp),
+                border = androidx.compose.foundation.BorderStroke(1.dp, colors.error.copy(alpha = 0.5f))
+            ) {
+                Icon(Icons.Default.PersonOff, null, tint = colors.error, modifier = Modifier.size(18.dp))
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = "Desvincular aluno",
+                    color = colors.error,
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
+        }
+
+        item {
+            Spacer(modifier = Modifier.height(8.dp))
+            EstatisticasAlunoSection(
+                state = estatisticasState,
+                periodoSelecionado = periodoEstatisticas,
+                onSelecionarPeriodo = onSelecionarPeriodoEstatisticas
+            )
+        }
+    }
+}
+
+@Composable
+private fun EstatisticasAlunoSection(
+    state: AlunoEstatisticasUiState,
+    periodoSelecionado: PeriodoEstatisticasAluno,
+    onSelecionarPeriodo: (PeriodoEstatisticasAluno) -> Unit
+) {
+    val colors = LocalAcademiaColors.current
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Icon(Icons.Default.Insights, null, tint = colors.primary, modifier = Modifier.size(16.dp))
+            Text(
+                text = "ESTATÍSTICAS DO ALUNO",
+                fontSize = 10.sp,
+                fontWeight = FontWeight.Bold,
+                letterSpacing = 1.sp,
+                color = colors.textSecondary
+            )
+        }
+        Spacer(modifier = Modifier.height(8.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            PeriodoEstatisticasAluno.entries.forEach { periodo ->
+                val selected = periodo == periodoSelecionado
+                FilterChip(
+                    selected = selected,
+                    onClick = { onSelecionarPeriodo(periodo) },
+                    label = { Text(periodo.label, style = MaterialTheme.typography.labelMedium) },
+                    colors = FilterChipDefaults.filterChipColors(
+                        selectedContainerColor = colors.primary.copy(alpha = 0.15f),
+                        selectedLabelColor = colors.primary,
+                        containerColor = colors.surface,
+                        labelColor = colors.textSecondary
+                    ),
+                    border = FilterChipDefaults.filterChipBorder(
+                        enabled = true,
+                        selected = selected,
+                        selectedBorderColor = colors.primary.copy(alpha = 0.4f),
+                        borderColor = colors.inputBorder
+                    )
+                )
+            }
+        }
+        Spacer(modifier = Modifier.height(12.dp))
+
+        when (state) {
+            is AlunoEstatisticasUiState.Idle, is AlunoEstatisticasUiState.Loading -> {
+                Box(modifier = Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator(color = colors.primary)
+                }
+            }
+            is AlunoEstatisticasUiState.Error -> {
+                Box(modifier = Modifier.fillMaxWidth().padding(24.dp), contentAlignment = Alignment.Center) {
+                    Text(state.message, color = colors.textSecondary, fontSize = 13.sp, textAlign = TextAlign.Center)
+                }
+            }
+            is AlunoEstatisticasUiState.Success -> {
+                StatsSection(stats = state.stats, colors = colors)
+                SecaoEvolucaoPeriodo(state = state.comparativo, periodoLabel = periodoSelecionado.label, colors = colors)
+                if (state.grupos.isNotEmpty()) {
+                    GruposMusculareSection(grupos = state.grupos, colors = colors)
+                }
+                if (state.frequentes.isNotEmpty()) {
+                    // onTap sem ação: treinador ainda não navega pra progressão por exercício
+                    // (isso existe só na visão do próprio aluno, em HistoricoScreen).
+                    ExerciciosFrequentesSection(frequentes = state.frequentes, colors = colors, onTap = {})
+                }
             }
         }
     }
