@@ -7,6 +7,8 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
+import androidx.lifecycle.viewmodel.compose.viewModel
+import dev.fslab.academia.ui.viewmodel.TreinoViewModel
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -501,6 +503,7 @@ fun AcademiaApp(
             }
 
             composable(Screen.TreinoCriar.route) { entry ->
+                val treinoFormViewModel: TreinoViewModel = viewModel()
                 val novoId by entry.savedStateHandle
                     .getStateFlow<String?>("novo_exercicio_id", null)
                     .collectAsState()
@@ -518,7 +521,8 @@ fun AcademiaApp(
                     novoExercicioId = novoId,
                     onConsumirNovoExercicio = {
                         entry.savedStateHandle["novo_exercicio_id"] = null
-                    }
+                    },
+                    viewModel = treinoFormViewModel
                 )
             }
 

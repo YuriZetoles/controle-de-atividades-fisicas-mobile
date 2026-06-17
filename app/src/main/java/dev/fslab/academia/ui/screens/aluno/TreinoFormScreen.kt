@@ -48,6 +48,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -242,7 +243,7 @@ fun TreinoFormScreen(
         }
     }
 
-    LaunchedEffect(nome, descricao, dias, itens) {
+    SideEffect {
         if (!ehEdicao) {
             viewModel.salvarRascunho(
                 TreinoFormRascunho(
