@@ -47,6 +47,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -73,6 +74,8 @@ import dev.fslab.academia.ui.components.ExercicioPickerBottomSheet
 import dev.fslab.academia.ui.theme.LocalAcademiaColors
 import dev.fslab.academia.ui.viewmodel.TreinoDetalheUiState
 import dev.fslab.academia.ui.viewmodel.TreinoExercicioPatchUpdate
+import dev.fslab.academia.ui.viewmodel.TreinoFormItemRascunho
+import dev.fslab.academia.ui.viewmodel.TreinoFormRascunho
 import dev.fslab.academia.ui.viewmodel.TreinoListUiState
 import dev.fslab.academia.ui.viewmodel.TreinoSalvarUiState
 import dev.fslab.academia.ui.viewmodel.TreinoViewModel
@@ -118,16 +121,46 @@ fun TreinoFormScreen(
     val detalheState by viewModel.detalheState.collectAsState()
     val salvarState by viewModel.salvarState.collectAsState()
 
-    var nome by remember { mutableStateOf("") }
-    var descricao by remember { mutableStateOf("") }
+    val rascunho = if (!ehEdicao) viewModel.formRascunho.value else TreinoFormRascunho()
+
+    var nome by remember { mutableStateOf(rascunho.nome) }
+    var descricao by remember { mutableStateOf(rascunho.descricao) }
     var descricaoOriginal by remember { mutableStateOf<String?>(null) }
     var ordemAutomatica by remember { mutableStateOf<Int?>(null) }
     var ordemOriginal by remember { mutableStateOf<Int?>(null) }
-    var dias by remember { mutableStateOf<Set<DiaSemana>>(emptySet()) }
+    var dias by remember { mutableStateOf(if (!ehEdicao) rascunho.dias else emptySet<DiaSemana>()) }
     var diasOriginal by remember { mutableStateOf<List<DiaSemana>?>(null) }
-    var itens by remember { mutableStateOf<List<ItemForm>>(emptyList()) }
+    var itens by remember {
+        mutableStateOf(
+            if (!ehEdicao) rascunho.itens.map { r ->
+                ItemForm(
+                    vinculoId = r.vinculoId,
+                    exercicioId = r.exercicioId,
+                    exercicioNome = r.exercicioNome,
+                    exercicioDescricao = r.exercicioDescricao,
+                    tipoExercicio = r.tipoExercicio,
+                    series = r.series,
+                    repeticoes = r.repeticoes,
+                    duracaoSugeridaSegundos = r.duracaoSugeridaSegundos,
+                    distanciaSugeridaMetros = r.distanciaSugeridaMetros,
+                    cargaSugerida = r.cargaSugerida,
+                    tempoDescansoSegundos = r.tempoDescansoSegundos,
+                    ordemExecucao = r.ordemExecucao,
+                    originalSeries = r.originalSeries,
+                    originalRepeticoes = r.originalRepeticoes,
+                    originalDuracao = r.originalDuracao,
+                    originalDistancia = r.originalDistancia,
+                    originalCarga = r.originalCarga,
+                    originalTempoDescanso = r.originalTempoDescanso,
+                    originalOrdem = r.originalOrdem
+                )
+            } else emptyList<ItemForm>()
+        )
+    }
     var idsOriginais by remember { mutableStateOf<Set<String>>(emptySet()) }
-    var formularioInicializado by remember { mutableStateOf(!ehEdicao) }
+    var formularioInicializado by remember {
+        mutableStateOf(if (!ehEdicao) rascunho.formularioInicializado else false)
+    }
 
     var nomeErro by remember { mutableStateOf<String?>(null) }
     var erroGeral by remember { mutableStateOf<String?>(null) }
@@ -210,11 +243,50 @@ fun TreinoFormScreen(
         }
     }
 
+    DisposableEffect(Unit) {
+        onDispose {
+            if (!ehEdicao) {
+                viewModel.salvarRascunho(
+                    TreinoFormRascunho(
+                        nome = nome,
+                        descricao = descricao,
+                        dias = dias,
+                        itens = itens.map { item ->
+                            TreinoFormItemRascunho(
+                                vinculoId = item.vinculoId,
+                                exercicioId = item.exercicioId,
+                                exercicioNome = item.exercicioNome,
+                                exercicioDescricao = item.exercicioDescricao,
+                                tipoExercicio = item.tipoExercicio,
+                                series = item.series,
+                                repeticoes = item.repeticoes,
+                                duracaoSugeridaSegundos = item.duracaoSugeridaSegundos,
+                                distanciaSugeridaMetros = item.distanciaSugeridaMetros,
+                                cargaSugerida = item.cargaSugerida,
+                                tempoDescansoSegundos = item.tempoDescansoSegundos,
+                                ordemExecucao = item.ordemExecucao,
+                                originalSeries = item.originalSeries,
+                                originalRepeticoes = item.originalRepeticoes,
+                                originalDuracao = item.originalDuracao,
+                                originalDistancia = item.originalDistancia,
+                                originalCarga = item.originalCarga,
+                                originalTempoDescanso = item.originalTempoDescanso,
+                                originalOrdem = item.originalOrdem
+                            )
+                        },
+                        formularioInicializado = formularioInicializado
+                    )
+                )
+            }
+        }
+    }
+
     LaunchedEffect(salvarState) {
         when (val s = salvarState) {
             is TreinoSalvarUiState.Success -> {
                 val id = s.treino.id
                 viewModel.resetSalvar()
+                if (!ehEdicao) viewModel.limparRascunho()
                 onSalvo(id)
             }
             is TreinoSalvarUiState.Error -> {

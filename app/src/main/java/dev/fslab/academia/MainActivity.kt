@@ -424,7 +424,9 @@ fun AcademiaApp(
                     exercicioId = null,
                     onBack = { navController.popBackStackSafely() },
                     onSalvo = { id ->
-                        navController.navigateSafely(Screen.ExercicioDetalhe.comId(id))
+                        navController.navigateSafely(Screen.ExercicioDetalhe.comId(id)) {
+                            popUpTo(Screen.ExercicioCriar.route) { inclusive = true }
+                        }
                     }
                 )
             }
@@ -506,7 +508,9 @@ fun AcademiaApp(
                     treinoId = null,
                     onBack = { navController.popBackStackSafely() },
                     onSalvo = { id ->
-                        navController.navigateSafely(Screen.TreinoDetalhe.comId(id))
+                        navController.navigateSafely(Screen.TreinoDetalhe.comId(id)) {
+                            popUpTo(Screen.TreinoCriar.route) { inclusive = true }
+                        }
                     },
                     onCriarExercicio = {
                         navController.navigateSafely(Screen.ExercicioCriarParaTreino.route)
