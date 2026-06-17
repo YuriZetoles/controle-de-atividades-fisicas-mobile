@@ -47,7 +47,6 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -243,41 +242,39 @@ fun TreinoFormScreen(
         }
     }
 
-    DisposableEffect(Unit) {
-        onDispose {
-            if (!ehEdicao) {
-                viewModel.salvarRascunho(
-                    TreinoFormRascunho(
-                        nome = nome,
-                        descricao = descricao,
-                        dias = dias,
-                        itens = itens.map { item ->
-                            TreinoFormItemRascunho(
-                                vinculoId = item.vinculoId,
-                                exercicioId = item.exercicioId,
-                                exercicioNome = item.exercicioNome,
-                                exercicioDescricao = item.exercicioDescricao,
-                                tipoExercicio = item.tipoExercicio,
-                                series = item.series,
-                                repeticoes = item.repeticoes,
-                                duracaoSugeridaSegundos = item.duracaoSugeridaSegundos,
-                                distanciaSugeridaMetros = item.distanciaSugeridaMetros,
-                                cargaSugerida = item.cargaSugerida,
-                                tempoDescansoSegundos = item.tempoDescansoSegundos,
-                                ordemExecucao = item.ordemExecucao,
-                                originalSeries = item.originalSeries,
-                                originalRepeticoes = item.originalRepeticoes,
-                                originalDuracao = item.originalDuracao,
-                                originalDistancia = item.originalDistancia,
-                                originalCarga = item.originalCarga,
-                                originalTempoDescanso = item.originalTempoDescanso,
-                                originalOrdem = item.originalOrdem
-                            )
-                        },
-                        formularioInicializado = formularioInicializado
-                    )
+    LaunchedEffect(nome, descricao, dias, itens) {
+        if (!ehEdicao) {
+            viewModel.salvarRascunho(
+                TreinoFormRascunho(
+                    nome = nome,
+                    descricao = descricao,
+                    dias = dias,
+                    itens = itens.map { item ->
+                        TreinoFormItemRascunho(
+                            vinculoId = item.vinculoId,
+                            exercicioId = item.exercicioId,
+                            exercicioNome = item.exercicioNome,
+                            exercicioDescricao = item.exercicioDescricao,
+                            tipoExercicio = item.tipoExercicio,
+                            series = item.series,
+                            repeticoes = item.repeticoes,
+                            duracaoSugeridaSegundos = item.duracaoSugeridaSegundos,
+                            distanciaSugeridaMetros = item.distanciaSugeridaMetros,
+                            cargaSugerida = item.cargaSugerida,
+                            tempoDescansoSegundos = item.tempoDescansoSegundos,
+                            ordemExecucao = item.ordemExecucao,
+                            originalSeries = item.originalSeries,
+                            originalRepeticoes = item.originalRepeticoes,
+                            originalDuracao = item.originalDuracao,
+                            originalDistancia = item.originalDistancia,
+                            originalCarga = item.originalCarga,
+                            originalTempoDescanso = item.originalTempoDescanso,
+                            originalOrdem = item.originalOrdem
+                        )
+                    },
+                    formularioInicializado = formularioInicializado
                 )
-            }
+            )
         }
     }
 
