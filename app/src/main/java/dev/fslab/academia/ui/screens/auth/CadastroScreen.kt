@@ -211,7 +211,8 @@ fun StepConta(viewModel: CadastroViewModel) {
 @Composable
 fun StepPerfil(viewModel: CadastroViewModel, academias: List<AcademiaData>) {
     val colors = LocalAcademiaColors.current
-    
+    val dimens = LocalDimens.current
+
     // --- Lógica Date Picker ---
     var showDatePicker by remember { mutableStateOf(false) }
     var selectedDateText by remember { mutableStateOf("") }
@@ -253,9 +254,14 @@ fun StepPerfil(viewModel: CadastroViewModel, academias: List<AcademiaData>) {
     var graduacao by remember { mutableStateOf("") }
     var especializacao by remember { mutableStateOf("") }
 
-    Column(modifier = Modifier.fillMaxSize().padding(24.dp).verticalScroll(rememberScrollState())) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(horizontal = dimens.screenPaddingH, vertical = dimens.screenPaddingV)
+            .verticalScroll(rememberScrollState())
+    ) {
         Text("Agora, complete seu perfil", color = colors.textSecondary, fontSize = 14.sp)
-        Spacer(Modifier.height(24.dp))
+        Spacer(Modifier.height(dimens.spaceXl))
 
         // Campo Data de Nascimento Amigável
         Column(modifier = Modifier.padding(bottom = 16.dp)) {
@@ -347,7 +353,7 @@ fun StepPerfil(viewModel: CadastroViewModel, academias: List<AcademiaData>) {
             CadastroField("Especialização", especializacao, { especializacao = it }, null)
         }
 
-        Spacer(Modifier.height(48.dp))
+        Spacer(Modifier.height(dimens.spaceXxl))
         Button(
             onClick = {
                 val acId = academiaSelecionada?.id ?: ""
@@ -357,8 +363,8 @@ fun StepPerfil(viewModel: CadastroViewModel, academias: List<AcademiaData>) {
                     viewModel.finalizarCadastroTreinador(rawDateValue, sexo.valor, acId, cref, graduacao, especializacao)
                 }
             },
-            modifier = Modifier.fillMaxWidth().height(56.dp),
-            shape = RoundedCornerShape(12.dp),
+            modifier = Modifier.fillMaxWidth().height(dimens.buttonHeight),
+            shape = RoundedCornerShape(dimens.cornerRadius),
             colors = ButtonDefaults.buttonColors(containerColor = colors.primary, contentColor = Color.Black)
         ) {
             Text("CONCLUIR CADASTRO", fontWeight = FontWeight.ExtraBold)
