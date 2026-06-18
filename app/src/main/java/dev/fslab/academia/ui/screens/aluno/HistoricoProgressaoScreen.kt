@@ -432,6 +432,7 @@ private fun GraficoProgressao(
     formatarValor: (Float) -> String = { "%.1f".format(it) }
 ) {
     if (pontos.size < 2) return
+    val dimens = LocalDimens.current
 
     val maxVal = pontos.max()
     val minVal = pontos.min()
@@ -444,7 +445,7 @@ private fun GraficoProgressao(
         colors = CardDefaults.cardColors(containerColor = colors.surface),
         shape = RoundedCornerShape(12.dp)
     ) {
-        Column(modifier = Modifier.padding(12.dp)) {
+        Column(modifier = Modifier.padding(dimens.cardPaddingSmall)) {
             Row(
                 Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -588,6 +589,7 @@ private fun GraficoProgressao(
 
 @Composable
 private fun ProgressaoItemCard(item: ProgressaoItemData, maxVolume: Double, colors: AcademiaColors) {
+    val dimens = LocalDimens.current
     val progress = if (maxVolume > 0) (item.volumeTotal / maxVolume).toFloat().coerceIn(0f, 1f) else 0f
     val dataFormatada = formatarDataProgressaoItem(item.data)
 
@@ -596,7 +598,7 @@ private fun ProgressaoItemCard(item: ProgressaoItemData, maxVolume: Double, colo
         colors = CardDefaults.cardColors(containerColor = colors.surface),
         shape = RoundedCornerShape(12.dp)
     ) {
-        Column(modifier = Modifier.padding(12.dp)) {
+        Column(modifier = Modifier.padding(dimens.cardPaddingSmall)) {
             Row(
                 Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -633,6 +635,7 @@ private fun ProgressaoItemCard(item: ProgressaoItemData, maxVolume: Double, colo
 
 @Composable
 private fun ProgressaoItemCardTempo(item: ProgressaoItemData, maxTempo: Int, colors: AcademiaColors) {
+    val dimens = LocalDimens.current
     val melhor = item.melhorTempoSegundos ?: 0
     val progress = if (maxTempo > 0) (melhor.toFloat() / maxTempo).coerceIn(0f, 1f) else 0f
     val dataFormatada = formatarDataProgressaoItem(item.data)
@@ -642,7 +645,7 @@ private fun ProgressaoItemCardTempo(item: ProgressaoItemData, maxTempo: Int, col
         colors = CardDefaults.cardColors(containerColor = colors.surface),
         shape = RoundedCornerShape(12.dp)
     ) {
-        Column(modifier = Modifier.padding(12.dp)) {
+        Column(modifier = Modifier.padding(dimens.cardPaddingSmall)) {
             Row(
                 Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -684,6 +687,7 @@ private fun ProgressaoItemCardTempo(item: ProgressaoItemData, maxTempo: Int, col
 
 @Composable
 private fun ProgressaoItemCardDistancia(item: ProgressaoItemData, maxDistancia: Int, colors: AcademiaColors) {
+    val dimens = LocalDimens.current
     val dist = item.distanciaTotalMetros ?: 0
     val progress = if (maxDistancia > 0) (dist.toFloat() / maxDistancia).coerceIn(0f, 1f) else 0f
     val dataFormatada = formatarDataProgressaoItem(item.data)
@@ -693,7 +697,7 @@ private fun ProgressaoItemCardDistancia(item: ProgressaoItemData, maxDistancia: 
         colors = CardDefaults.cardColors(containerColor = colors.surface),
         shape = RoundedCornerShape(12.dp)
     ) {
-        Column(modifier = Modifier.padding(12.dp)) {
+        Column(modifier = Modifier.padding(dimens.cardPaddingSmall)) {
             Row(
                 Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -752,6 +756,7 @@ private fun formatarDataCurtaProgressao(iso: String?): String {
 
 @Composable
 private fun CardRecordePr(recordeState: RecordeUiState, colors: AcademiaColors) {
+    val dimens = LocalDimens.current
     val recorde = (recordeState as? RecordeUiState.Success)?.data ?: return
     val prOuro = colors.featureOrange
 
@@ -763,7 +768,7 @@ private fun CardRecordePr(recordeState: RecordeUiState, colors: AcademiaColors) 
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(containerColor = prOuro.copy(alpha = 0.08f))
     ) {
-        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Column(modifier = Modifier.padding(dimens.cardPadding), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Icon(Icons.Filled.EmojiEvents, contentDescription = null, tint = prOuro, modifier = Modifier.size(20.dp))
                 Text(

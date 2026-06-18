@@ -1356,7 +1356,7 @@ private fun ResumoSessaoConteudo(
                     colors = CardDefaults.cardColors(containerColor = colors.surface),
                     shape = RoundedCornerShape(16.dp)
                 ) {
-                    Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Column(modifier = Modifier.padding(dimens.cardPadding), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                         Text("Resumo do treino", color = colors.textPrimary, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                         HorizontalDivider(color = colors.lightGray.copy(alpha = 0.5f))
 

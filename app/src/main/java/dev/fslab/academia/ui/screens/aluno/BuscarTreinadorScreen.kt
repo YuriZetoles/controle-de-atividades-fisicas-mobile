@@ -170,7 +170,7 @@ private fun TreinadorCard(treinador: TreinadorData, onClick: () -> Unit) {
             .background(colors.surface.copy(alpha = 0.5f))
             .border(1.dp, colors.surface.copy(alpha = 0.15f), RoundedCornerShape(16.dp))
             .clickable(onClick = onClick)
-            .padding(16.dp),
+            .padding(dimens.cardPadding),
         verticalAlignment = Alignment.CenterVertically
     ) {
         if (!treinador.urlFoto.isNullOrBlank()) {

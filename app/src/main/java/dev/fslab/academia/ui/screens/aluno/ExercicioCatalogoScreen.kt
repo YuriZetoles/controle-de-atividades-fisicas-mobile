@@ -470,7 +470,7 @@ private fun ExercicioCard(
         elevation = CardDefaults.elevatedCardElevation(defaultElevation = 2.dp)
     ) {
         Column(
-            modifier = Modifier.padding(16.dp),
+            modifier = Modifier.padding(dimens.cardPadding),
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             Row(

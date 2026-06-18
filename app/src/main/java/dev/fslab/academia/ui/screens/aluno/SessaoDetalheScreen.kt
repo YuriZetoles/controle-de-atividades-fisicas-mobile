@@ -114,6 +114,7 @@ private fun SessaoDetalheConteudo(
     padding: PaddingValues
 ) {
     val duracaoMin = calcularDuracaoDetalhe(sessao.inicio, sessao.fim)
+    val dimens = LocalDimens.current
     val dataFormatada = formatarDataDetalhe(sessao.inicio)
     val exerciciosConcluidos = sessao.exercicios.count { it.concluido }
     val totalExercicios = sessao.exercicios.size
@@ -129,7 +130,7 @@ private fun SessaoDetalheConteudo(
                 colors = CardDefaults.cardColors(containerColor = colors.surface),
                 shape = RoundedCornerShape(12.dp)
             ) {
-                Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Column(modifier = Modifier.padding(dimens.cardPadding), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,

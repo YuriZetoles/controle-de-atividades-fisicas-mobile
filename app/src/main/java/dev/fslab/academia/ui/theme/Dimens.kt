@@ -50,7 +50,10 @@ data class Dimens(
     val logoSize: Dp,
     val avatarSize: Dp,
     val cornerRadius: Dp,
-    val cardElevation: Dp
+    val cardElevation: Dp,
+    // Padding interno de cards/superfícies (medium = valor antigo, sem drift visual)
+    val cardPadding: Dp,
+    val cardPaddingSmall: Dp
 )
 
 private val CompactDimens = Dimens(
@@ -73,7 +76,9 @@ private val CompactDimens = Dimens(
     logoSize = 56.dp,
     avatarSize = 40.dp,
     cornerRadius = 12.dp,
-    cardElevation = 2.dp
+    cardElevation = 2.dp,
+    cardPadding = 12.dp,
+    cardPaddingSmall = 8.dp
 )
 
 private val MediumDimens = Dimens(
@@ -96,7 +101,9 @@ private val MediumDimens = Dimens(
     logoSize = 64.dp,
     avatarSize = 48.dp,
     cornerRadius = 14.dp,
-    cardElevation = 3.dp
+    cardElevation = 3.dp,
+    cardPadding = 16.dp,
+    cardPaddingSmall = 12.dp
 )
 
 private val ExpandedDimens = Dimens(
@@ -119,7 +126,9 @@ private val ExpandedDimens = Dimens(
     logoSize = 72.dp,
     avatarSize = 56.dp,
     cornerRadius = 16.dp,
-    cardElevation = 4.dp
+    cardElevation = 4.dp,
+    cardPadding = 20.dp,
+    cardPaddingSmall = 16.dp
 )
 
 val LocalDimens = compositionLocalOf { MediumDimens }

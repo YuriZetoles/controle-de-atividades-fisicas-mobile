@@ -149,7 +149,7 @@ fun ChatConversationBody(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(16.dp),
+                    .padding(dimens.cardPadding),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 OutlinedTextField(

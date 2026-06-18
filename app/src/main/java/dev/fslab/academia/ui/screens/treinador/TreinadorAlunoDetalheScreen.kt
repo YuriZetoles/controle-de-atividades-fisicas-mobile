@@ -367,7 +367,7 @@ private fun AlunoDetalheContent(
                         .clip(RoundedCornerShape(16.dp))
                         .background(colors.surface)
                         .border(1.dp, colors.inputBorder, RoundedCornerShape(16.dp))
-                        .padding(12.dp),
+                        .padding(dimens.cardPaddingSmall),
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     diasSemanaLabels.forEachIndexed { index, dia ->

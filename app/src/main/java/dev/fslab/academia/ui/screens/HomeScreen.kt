@@ -397,7 +397,7 @@ fun HomeScreen(
                             .background(colors.primary.copy(alpha = 0.08f))
                             .border(1.dp, colors.primary.copy(alpha = 0.25f), RoundedCornerShape(16.dp))
                             .clickable { onBuscarTreinador() }
-                            .padding(16.dp)
+                            .padding(dimens.cardPadding)
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Box(
@@ -447,7 +447,7 @@ fun HomeScreen(
                             .clip(RoundedCornerShape(16.dp))
                             .background(colors.featureOrange.copy(alpha = 0.08f))
                             .border(1.dp, colors.featureOrange.copy(alpha = 0.3f), RoundedCornerShape(16.dp))
-                            .padding(16.dp)
+                            .padding(dimens.cardPadding)
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Box(
@@ -495,7 +495,7 @@ fun HomeScreen(
                         .background(colors.primary.copy(alpha = 0.12f))
                         .border(1.dp, colors.primary.copy(alpha = 0.5f), RoundedCornerShape(16.dp))
                         .clickable { onRetomarSessao() }
-                        .padding(16.dp)
+                        .padding(dimens.cardPadding)
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Box(
@@ -688,7 +688,7 @@ fun HomeScreen(
                             .fillMaxWidth()
                             .clip(RoundedCornerShape(16.dp))
                             .background(colors.errorBackground.copy(alpha = 0.3f))
-                            .padding(16.dp)
+                            .padding(dimens.cardPadding)
                     ) {
                         Text(
                             text = state.message,

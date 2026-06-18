@@ -463,7 +463,7 @@ private fun CardEstatisticas(
         shape = RoundedCornerShape(16.dp)
     ) {
         Row(
-            modifier = Modifier.fillMaxWidth().padding(16.dp),
+            modifier = Modifier.fillMaxWidth().padding(dimens.cardPadding),
             horizontalArrangement = Arrangement.SpaceEvenly
         ) {
             Estatistica("Músculos", totalMusculos.toString())

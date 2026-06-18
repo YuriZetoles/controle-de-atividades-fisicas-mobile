@@ -184,7 +184,7 @@ private fun AparelhoCard(aparelho: AparelhoData) {
         shape = RoundedCornerShape(14.dp),
         colors = CardDefaults.cardColors(containerColor = colors.surface)
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
+        Column(modifier = Modifier.padding(dimens.cardPadding)) {
             Text(
                 aparelho.nome,
                 color = colors.textPrimary,

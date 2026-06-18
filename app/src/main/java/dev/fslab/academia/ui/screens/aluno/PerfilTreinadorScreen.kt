@@ -178,7 +178,7 @@ fun PerfilTreinadorScreen(
                                 .fillMaxWidth()
                                 .clip(RoundedCornerShape(12.dp))
                                 .background(colors.surface.copy(alpha = 0.5f))
-                                .padding(12.dp),
+                                .padding(dimens.cardPaddingSmall),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Icon(Icons.Filled.School, null, tint = colors.primary, modifier = Modifier.size(20.dp))
@@ -195,7 +195,7 @@ fun PerfilTreinadorScreen(
                                 .fillMaxWidth()
                                 .clip(RoundedCornerShape(12.dp))
                                 .background(colors.surface.copy(alpha = 0.5f))
-                                .padding(16.dp)
+                                .padding(dimens.cardPadding)
                         ) {
                             Text(t.apresentacao, style = MaterialTheme.typography.bodyMedium, color = colors.textPrimary.copy(alpha = 0.85f))
                         }
@@ -210,7 +210,7 @@ fun PerfilTreinadorScreen(
                                     .clip(RoundedCornerShape(14.dp))
                                     .background(colors.primary.copy(alpha = 0.1f))
                                     .border(1.dp, colors.primary.copy(alpha = 0.3f), RoundedCornerShape(14.dp))
-                                    .padding(16.dp),
+                                    .padding(dimens.cardPadding),
                                 horizontalArrangement = Arrangement.Center,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {

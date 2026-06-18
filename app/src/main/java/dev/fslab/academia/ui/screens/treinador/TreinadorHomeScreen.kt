@@ -476,6 +476,7 @@ private fun SolicitacaoCard(
     onRecusar: () -> Unit
 ) {
     val colors = LocalAcademiaColors.current
+    val dimens = LocalDimens.current
     val aluno = solicitacao.aluno
     val nome = aluno?.nome ?: "Aluno"
     val iniciais = nome.split(" ").take(2).joinToString("") { it.firstOrNull()?.uppercase() ?: "" }
@@ -486,7 +487,7 @@ private fun SolicitacaoCard(
             .clip(RoundedCornerShape(16.dp))
             .background(colors.surface)
             .border(1.dp, colors.featureOrange.copy(alpha = 0.3f), RoundedCornerShape(16.dp))
-            .padding(12.dp),
+            .padding(dimens.cardPaddingSmall),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Box(
@@ -555,6 +556,7 @@ private fun AvatarChip(
     onClick: () -> Unit
 ) {
     val colors = LocalAcademiaColors.current
+    val dimens = LocalDimens.current
     val iniciais = cliente.nome.split(" ").take(2)
         .joinToString("") { it.firstOrNull()?.uppercase() ?: "" }
 
@@ -599,6 +601,7 @@ private fun ClienteCardResumido(
     onClick: () -> Unit
 ) {
     val colors = LocalAcademiaColors.current
+    val dimens = LocalDimens.current
     val iniciais = cliente.nome.split(" ").take(2)
         .joinToString("") { it.firstOrNull()?.uppercase() ?: "" }
     val diasTexto = cliente.diasTreino.sorted()

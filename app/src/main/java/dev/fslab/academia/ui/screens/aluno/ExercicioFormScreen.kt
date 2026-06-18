@@ -925,7 +925,7 @@ private fun TipoOpcao(
             .clip(RoundedCornerShape(12.dp))
             .background(bgColor)
             .clickable(onClick = onClick)
-            .padding(12.dp)
+            .padding(dimens.cardPaddingSmall)
     ) {
         Column(
             modifier = Modifier.fillMaxSize(),
