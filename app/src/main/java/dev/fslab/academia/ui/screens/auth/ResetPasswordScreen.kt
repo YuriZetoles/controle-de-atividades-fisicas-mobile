@@ -7,15 +7,19 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -63,6 +67,7 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import dev.fslab.academia.ui.theme.LocalAcademiaColors
+import dev.fslab.academia.ui.theme.LocalDimens
 
 @Composable
 fun ResetPasswordScreen(
@@ -75,6 +80,7 @@ fun ResetPasswordScreen(
     onSubmit: (String, String) -> Unit = { _, _ -> }
 ) {
     val colors = LocalAcademiaColors.current
+    val dimens = LocalDimens.current
 
     var password by remember { mutableStateOf("") }
     var confirmPassword by remember { mutableStateOf("") }
@@ -119,24 +125,29 @@ fun ResetPasswordScreen(
             }
         }
 
-        Column(
+        BoxWithConstraints(
             modifier = Modifier
                 .fillMaxSize()
+                .windowInsetsPadding(WindowInsets.safeDrawing)
+        ) {
+        val alturaTela = maxHeight
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(min = alturaTela)
                 .verticalScroll(rememberScrollState())
-                .imePadding()
-                .padding(horizontal = 24.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+                .padding(horizontal = dimens.screenPaddingH),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.SpaceBetween
         ) {
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 44.dp),
+                modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.End
             ) {
                 IconButton(
                     onClick = onToggleTheme,
                     modifier = Modifier
-                        .size(40.dp)
+                        .size(dimens.minTouchTarget)
                         .clip(CircleShape)
                         .background(colors.surface.copy(alpha = 0.5f))
                         .border(1.dp, colors.inputBorder.copy(alpha = 0.2f), CircleShape)
@@ -145,16 +156,20 @@ fun ResetPasswordScreen(
                         imageVector = if (isDarkTheme) Icons.Filled.LightMode else Icons.Filled.DarkMode,
                         contentDescription = "Trocar Tema",
                         tint = colors.textPrimary,
-                        modifier = Modifier.size(20.dp)
+                        modifier = Modifier.size(dimens.iconMd)
                     )
                 }
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
+            // Bloco central (marca + formulário) agrupado para o SpaceBetween.
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
 
             Box(
                 modifier = Modifier
-                    .size(64.dp)
+                    .size(dimens.logoSize)
                     .shadow(
                         elevation = 20.dp,
                         shape = RoundedCornerShape(16.dp),
@@ -174,7 +189,7 @@ fun ResetPasswordScreen(
                 )
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(dimens.spaceXs))
 
             Text(
                 text = buildAnnotatedString {
@@ -198,7 +213,7 @@ fun ResetPasswordScreen(
                 modifier = Modifier.padding(top = 8.dp)
             )
 
-            Spacer(modifier = Modifier.height(64.dp))
+            Spacer(modifier = Modifier.height(dimens.spaceXl))
 
             Text(
                 text = "Crie uma nova senha",
@@ -206,20 +221,20 @@ fun ResetPasswordScreen(
                 fontSize = 24.sp,
                 fontWeight = FontWeight.Bold,
                 letterSpacing = (-0.6).sp,
-                modifier = Modifier.padding(bottom = 8.dp)
+                modifier = Modifier.padding(bottom = dimens.spaceSm)
             )
 
             Text(
                 text = "Sua nova senha deve ser diferente das senhas anteriores.",
                 color = colors.textSecondary,
                 fontSize = 14.sp,
-                modifier = Modifier.padding(bottom = 32.dp),
+                modifier = Modifier.padding(bottom = dimens.spaceXl),
                 textAlign = androidx.compose.ui.text.style.TextAlign.Center
             )
 
             Column(
                 modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(20.dp)
+                verticalArrangement = Arrangement.spacedBy(dimens.spaceMd)
             ) {
                 // Campo Nova Senha
                 Column {
@@ -323,21 +338,21 @@ fun ResetPasswordScreen(
                     )
                 }
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(dimens.spaceSm))
 
                 Button(
                     onClick = { onSubmit(password, token) },
                     enabled = !isLoading && password.isNotEmpty() && password == confirmPassword,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(56.dp)
+                        .height(dimens.buttonHeight)
                         .shadow(
                             elevation = 20.dp,
-                            shape = RoundedCornerShape(12.dp),
+                            shape = RoundedCornerShape(dimens.cornerRadius),
                             ambientColor = colors.primary.copy(alpha = 0.35f),
                             spotColor = colors.primary.copy(alpha = 0.35f)
                         ),
-                    shape = RoundedCornerShape(12.dp),
+                    shape = RoundedCornerShape(dimens.cornerRadius),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = colors.primary,
                         contentColor = Color.Black
@@ -355,7 +370,10 @@ fun ResetPasswordScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.weight(1f))
+            } // fim do bloco central
+
+            Spacer(modifier = Modifier.height(dimens.spaceXl))
+        }
         }
     }
 }

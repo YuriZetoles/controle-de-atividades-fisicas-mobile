@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.animation.Crossfade
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -48,6 +49,8 @@ import dev.fslab.academia.model.TipoExercicio
 import dev.fslab.academia.ui.components.AcademiaAppBar
 import dev.fslab.academia.ui.theme.AcademiaColors
 import dev.fslab.academia.ui.theme.LocalAcademiaColors
+import dev.fslab.academia.ui.theme.LocalDimens
+import dev.fslab.academia.ui.util.Motion
 import dev.fslab.academia.ui.viewmodel.HistoricoViewModel
 import dev.fslab.academia.ui.viewmodel.SessaoDetalheUiState
 import java.time.Instant
@@ -61,6 +64,7 @@ fun SessaoDetalheScreen(
     viewModel: HistoricoViewModel = viewModel()
 ) {
     val colors = LocalAcademiaColors.current
+    val dimens = LocalDimens.current
     val state by viewModel.sessaoDetalheState.collectAsState()
 
     LaunchedEffect(sessaoId) {
@@ -80,7 +84,8 @@ fun SessaoDetalheScreen(
             )
         }
     ) { padding ->
-        when (val s = state) {
+        Crossfade(targetState = state, animationSpec = Motion.contentSpec(), label = "sessaoDetalhe") { s ->
+        when (s) {
             is SessaoDetalheUiState.Idle, SessaoDetalheUiState.Loading -> {
                 Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
                     CircularProgressIndicator(color = colors.primary)
@@ -102,6 +107,7 @@ fun SessaoDetalheScreen(
                 SessaoDetalheConteudo(sessao = s.sessao, colors = colors, padding = padding)
             }
         }
+        }
     }
 }
 
@@ -112,6 +118,7 @@ private fun SessaoDetalheConteudo(
     padding: PaddingValues
 ) {
     val duracaoMin = calcularDuracaoDetalhe(sessao.inicio, sessao.fim)
+    val dimens = LocalDimens.current
     val dataFormatada = formatarDataDetalhe(sessao.inicio)
     val exerciciosConcluidos = sessao.exercicios.count { it.concluido }
     val totalExercicios = sessao.exercicios.size
@@ -127,7 +134,7 @@ private fun SessaoDetalheConteudo(
                 colors = CardDefaults.cardColors(containerColor = colors.surface),
                 shape = RoundedCornerShape(12.dp)
             ) {
-                Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Column(modifier = Modifier.padding(dimens.cardPadding), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,

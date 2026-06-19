@@ -1,5 +1,6 @@
 package dev.fslab.academia.ui.screens.treinador
 
+import androidx.compose.animation.Crossfade
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -62,6 +63,8 @@ import dev.fslab.academia.ui.components.GruposMusculareSection
 import dev.fslab.academia.ui.components.SecaoEvolucaoPeriodo
 import dev.fslab.academia.ui.components.StatsSection
 import dev.fslab.academia.ui.theme.LocalAcademiaColors
+import dev.fslab.academia.ui.theme.LocalDimens
+import dev.fslab.academia.ui.util.Motion
 import dev.fslab.academia.ui.viewmodel.AlunoEstatisticasUiState
 import dev.fslab.academia.ui.viewmodel.DesvincularAlunoState
 import dev.fslab.academia.ui.viewmodel.PeriodoEstatisticasAluno
@@ -88,6 +91,7 @@ fun TreinadorAlunoDetalheScreen(
     autoLoad: Boolean = true
 ) {
     val colors = LocalAcademiaColors.current
+    val dimens = LocalDimens.current
     val uiState by viewModel.uiState.collectAsState()
     val deletarState by treinoViewModel.deletarState.collectAsState()
     val desvincularState by viewModel.desvincularState.collectAsState()
@@ -133,7 +137,8 @@ fun TreinadorAlunoDetalheScreen(
             )
         }
     ) { innerPadding ->
-        when (val state = uiState) {
+        Crossfade(targetState = uiState, animationSpec = Motion.contentSpec(), label = "alunoDetalhe") { state ->
+        when (state) {
             is TreinadorAlunoDetalheUiState.Loading -> {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     Text("Carregando perfil...", color = colors.textSecondary)
@@ -165,6 +170,7 @@ fun TreinadorAlunoDetalheScreen(
                 )
             }
             else -> Unit
+        }
         }
     }
 
@@ -278,6 +284,7 @@ private fun AlunoDetalheContent(
     onSelecionarPeriodoEstatisticas: (PeriodoEstatisticasAluno) -> Unit
 ) {
     val colors = LocalAcademiaColors.current
+    val dimens = LocalDimens.current
     val hoje = LocalDate.now()
     val diaHojeIdx = hoje.dayOfWeek.value % 7
 
@@ -364,7 +371,7 @@ private fun AlunoDetalheContent(
                         .clip(RoundedCornerShape(16.dp))
                         .background(colors.surface)
                         .border(1.dp, colors.inputBorder, RoundedCornerShape(16.dp))
-                        .padding(12.dp),
+                        .padding(dimens.cardPaddingSmall),
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     diasSemanaLabels.forEachIndexed { index, dia ->
@@ -505,6 +512,7 @@ private fun EstatisticasAlunoSection(
     onSelecionarPeriodo: (PeriodoEstatisticasAluno) -> Unit
 ) {
     val colors = LocalAcademiaColors.current
+    val dimens = LocalDimens.current
     Column(modifier = Modifier.fillMaxWidth()) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Icon(Icons.Default.Insights, null, tint = colors.primary, modifier = Modifier.size(16.dp))
@@ -571,6 +579,7 @@ private fun EstatisticasAlunoSection(
 @Composable
 private fun StatItem(value: String, label: String) {
     val colors = LocalAcademiaColors.current
+    val dimens = LocalDimens.current
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Text(text = value, fontSize = 18.sp, fontWeight = FontWeight.Bold, color = colors.primary)
         Text(text = label, fontSize = 10.sp, color = colors.textSecondary)
@@ -583,6 +592,7 @@ private fun TreinoCard(
     onExcluir: () -> Unit
 ) {
     val colors = LocalAcademiaColors.current
+    val dimens = LocalDimens.current
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -619,6 +629,7 @@ private fun TreinoCard(
 @Composable
 private fun AvatarCliente(nome: String, size: androidx.compose.ui.unit.Dp) {
     val colors = LocalAcademiaColors.current
+    val dimens = LocalDimens.current
     val iniciais = nome.split(" ").take(2).joinToString("") { it.firstOrNull()?.uppercase() ?: "" }
 
     Box(

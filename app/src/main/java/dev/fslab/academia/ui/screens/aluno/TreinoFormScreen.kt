@@ -20,6 +20,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.DirectionsRun
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.DragHandle
@@ -47,6 +48,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -70,8 +72,11 @@ import dev.fslab.academia.ui.components.AcademiaAppBar
 import dev.fslab.academia.ui.components.DiaSemanaSelectionBottomSheet
 import dev.fslab.academia.ui.components.ExercicioPickerBottomSheet
 import dev.fslab.academia.ui.theme.LocalAcademiaColors
+import dev.fslab.academia.ui.theme.LocalDimens
 import dev.fslab.academia.ui.viewmodel.TreinoDetalheUiState
 import dev.fslab.academia.ui.viewmodel.TreinoExercicioPatchUpdate
+import dev.fslab.academia.ui.viewmodel.TreinoFormItemRascunho
+import dev.fslab.academia.ui.viewmodel.TreinoFormRascunho
 import dev.fslab.academia.ui.viewmodel.TreinoListUiState
 import dev.fslab.academia.ui.viewmodel.TreinoSalvarUiState
 import dev.fslab.academia.ui.viewmodel.TreinoViewModel
@@ -87,12 +92,14 @@ private data class ItemForm(
     val series: Int,
     val repeticoes: String? = null,
     val duracaoSugeridaSegundos: Int? = null,
+    val distanciaSugeridaMetros: Int? = null,
     val cargaSugerida: Double?,
     val tempoDescansoSegundos: Int,
     val ordemExecucao: Int,
     val originalSeries: Int? = null,
     val originalRepeticoes: String? = null,
     val originalDuracao: Int? = null,
+    val originalDistancia: Int? = null,
     val originalCarga: Double? = null,
     val originalTempoDescanso: Int? = null,
     val originalOrdem: Int? = null
@@ -110,21 +117,68 @@ fun TreinoFormScreen(
     viewModel: TreinoViewModel = viewModel()
 ) {
     val colors = LocalAcademiaColors.current
+    val dimens = LocalDimens.current
     val ehEdicao = treinoId != null
 
     val detalheState by viewModel.detalheState.collectAsState()
     val salvarState by viewModel.salvarState.collectAsState()
 
-    var nome by remember { mutableStateOf("") }
-    var descricao by remember { mutableStateOf("") }
-    var descricaoOriginal by remember { mutableStateOf<String?>(null) }
-    var ordemAutomatica by remember { mutableStateOf<Int?>(null) }
-    var ordemOriginal by remember { mutableStateOf<Int?>(null) }
-    var dias by remember { mutableStateOf<Set<DiaSemana>>(emptySet()) }
-    var diasOriginal by remember { mutableStateOf<List<DiaSemana>?>(null) }
-    var itens by remember { mutableStateOf<List<ItemForm>>(emptyList()) }
-    var idsOriginais by remember { mutableStateOf<Set<String>>(emptySet()) }
-    var formularioInicializado by remember { mutableStateOf(!ehEdicao) }
+    // Rascunho válido = mesmo treino (ou ambos criação) e já preenchido.
+    // Permite restaurar estado ao voltar de subfluxo (criar exercício), em criação E edição.
+    val rascunho = viewModel.formRascunho.value
+    val temRascunho = rascunho.ativo && rascunho.treinoId == treinoId
+
+    var nome by remember { mutableStateOf(if (temRascunho) rascunho.nome else "") }
+    var descricao by remember { mutableStateOf(if (temRascunho) rascunho.descricao else "") }
+    var descricaoOriginal by remember {
+        mutableStateOf(if (temRascunho) rascunho.descricaoOriginal else null)
+    }
+    var ordemAutomatica by remember {
+        mutableStateOf(if (temRascunho) rascunho.ordemAutomatica else null)
+    }
+    var ordemOriginal by remember {
+        mutableStateOf(if (temRascunho) rascunho.ordemOriginal else null)
+    }
+    var dias by remember {
+        mutableStateOf(if (temRascunho) rascunho.dias else emptySet<DiaSemana>())
+    }
+    var diasOriginal by remember {
+        mutableStateOf(if (temRascunho) rascunho.diasOriginal else null)
+    }
+    var itens by remember {
+        mutableStateOf(
+            if (temRascunho) rascunho.itens.map { r ->
+                ItemForm(
+                    vinculoId = r.vinculoId,
+                    exercicioId = r.exercicioId,
+                    exercicioNome = r.exercicioNome,
+                    exercicioDescricao = r.exercicioDescricao,
+                    tipoExercicio = r.tipoExercicio,
+                    series = r.series,
+                    repeticoes = r.repeticoes,
+                    duracaoSugeridaSegundos = r.duracaoSugeridaSegundos,
+                    distanciaSugeridaMetros = r.distanciaSugeridaMetros,
+                    cargaSugerida = r.cargaSugerida,
+                    tempoDescansoSegundos = r.tempoDescansoSegundos,
+                    ordemExecucao = r.ordemExecucao,
+                    originalSeries = r.originalSeries,
+                    originalRepeticoes = r.originalRepeticoes,
+                    originalDuracao = r.originalDuracao,
+                    originalDistancia = r.originalDistancia,
+                    originalCarga = r.originalCarga,
+                    originalTempoDescanso = r.originalTempoDescanso,
+                    originalOrdem = r.originalOrdem
+                )
+            } else emptyList<ItemForm>()
+        )
+    }
+    var idsOriginais by remember {
+        mutableStateOf(if (temRascunho) rascunho.idsOriginais else emptySet<String>())
+    }
+    // Em criação sem rascunho: já inicializado. Em edição sem rascunho: aguarda carregar do servidor.
+    var formularioInicializado by remember {
+        mutableStateOf(if (temRascunho) rascunho.formularioInicializado else !ehEdicao)
+    }
 
     var nomeErro by remember { mutableStateOf<String?>(null) }
     var erroGeral by remember { mutableStateOf<String?>(null) }
@@ -160,7 +214,8 @@ fun TreinoFormScreen(
     LaunchedEffect(Unit) { viewModel.resetSalvar() }
 
     LaunchedEffect(treinoId) {
-        if (ehEdicao) viewModel.carregarDetalhe(treinoId!!)
+        // Só busca do servidor se ainda não há dados (evita sobrescrever edições restauradas do rascunho)
+        if (ehEdicao && !formularioInicializado) viewModel.carregarDetalhe(treinoId!!)
     }
 
     LaunchedEffect(detalheState) {
@@ -188,12 +243,14 @@ fun TreinoFormScreen(
                             series = item.series,
                             repeticoes = item.repeticoes,
                             duracaoSugeridaSegundos = item.duracaoSugeridaSegundos,
+                            distanciaSugeridaMetros = item.distanciaSugeridaMetros,
                             cargaSugerida = item.cargaSugerida?.toDoubleOrNull(),
                             tempoDescansoSegundos = item.tempoDescansoSegundos,
                             ordemExecucao = item.ordemExecucao,
                             originalSeries = item.series,
                             originalRepeticoes = item.repeticoes,
                             originalDuracao = item.duracaoSugeridaSegundos,
+                            originalDistancia = item.distanciaSugeridaMetros,
                             originalCarga = item.cargaSugerida?.toDoubleOrNull(),
                             originalTempoDescanso = item.tempoDescansoSegundos,
                             originalOrdem = item.ordemExecucao
@@ -205,11 +262,55 @@ fun TreinoFormScreen(
         }
     }
 
+    // Salva rascunho sincronicamente a cada recomposição (criação E edição),
+    // garantindo que o estado atual sobreviva à navegação para subfluxos.
+    SideEffect {
+        viewModel.salvarRascunho(
+            TreinoFormRascunho(
+                treinoId = treinoId,
+                ativo = true,
+                nome = nome,
+                descricao = descricao,
+                descricaoOriginal = descricaoOriginal,
+                ordemAutomatica = ordemAutomatica,
+                ordemOriginal = ordemOriginal,
+                dias = dias,
+                diasOriginal = diasOriginal,
+                itens = itens.map { item ->
+                    TreinoFormItemRascunho(
+                        vinculoId = item.vinculoId,
+                        exercicioId = item.exercicioId,
+                        exercicioNome = item.exercicioNome,
+                        exercicioDescricao = item.exercicioDescricao,
+                        tipoExercicio = item.tipoExercicio,
+                        series = item.series,
+                        repeticoes = item.repeticoes,
+                        duracaoSugeridaSegundos = item.duracaoSugeridaSegundos,
+                        distanciaSugeridaMetros = item.distanciaSugeridaMetros,
+                        cargaSugerida = item.cargaSugerida,
+                        tempoDescansoSegundos = item.tempoDescansoSegundos,
+                        ordemExecucao = item.ordemExecucao,
+                        originalSeries = item.originalSeries,
+                        originalRepeticoes = item.originalRepeticoes,
+                        originalDuracao = item.originalDuracao,
+                        originalDistancia = item.originalDistancia,
+                        originalCarga = item.originalCarga,
+                        originalTempoDescanso = item.originalTempoDescanso,
+                        originalOrdem = item.originalOrdem
+                    )
+                },
+                idsOriginais = idsOriginais,
+                formularioInicializado = formularioInicializado
+            )
+        )
+    }
+
     LaunchedEffect(salvarState) {
         when (val s = salvarState) {
             is TreinoSalvarUiState.Success -> {
                 val id = s.treino.id
                 viewModel.resetSalvar()
+                viewModel.limparRascunho()
                 onSalvo(id)
             }
             is TreinoSalvarUiState.Error -> {
@@ -277,7 +378,7 @@ fun TreinoFormScreen(
                             if (nomeErro != null) nomeErro = null
                             if (erroGeral != null) erroGeral = null
                         },
-                        label = { Text("Nome do treino") },
+                        label = { Text("Nome do treino *") },
                         placeholder = { Text("Ex: Treino A - Peito e Tríceps") },
                         singleLine = true,
                         isError = nomeErro != null,
@@ -386,6 +487,7 @@ fun TreinoFormScreen(
                                     series = item.series,
                                     repeticoes = if (item.tipoExercicio == TipoExercicio.REPETICAO) item.repeticoes else null,
                                     duracaoSugeridaSegundos = if (item.tipoExercicio == TipoExercicio.TEMPO) item.duracaoSugeridaSegundos else null,
+                                    distanciaSugeridaMetros = if (item.tipoExercicio == TipoExercicio.DISTANCIA) item.distanciaSugeridaMetros else null,
                                     cargaSugerida = item.cargaSugerida,
                                     tempoDescansoSegundos = item.tempoDescansoSegundos,
                                     ordemExecucao = idx + 1
@@ -408,6 +510,7 @@ fun TreinoFormScreen(
                                         series = item.series,
                                         repeticoes = if (item.tipoExercicio == TipoExercicio.REPETICAO) item.repeticoes else null,
                                         duracaoSugeridaSegundos = if (item.tipoExercicio == TipoExercicio.TEMPO) item.duracaoSugeridaSegundos else null,
+                                        distanciaSugeridaMetros = if (item.tipoExercicio == TipoExercicio.DISTANCIA) item.distanciaSugeridaMetros else null,
                                         cargaSugerida = item.cargaSugerida,
                                         tempoDescansoSegundos = item.tempoDescansoSegundos,
                                         ordemExecucao = idx + 1
@@ -421,10 +524,11 @@ fun TreinoFormScreen(
                                         val mudouSeries = item.originalSeries != item.series
                                         val mudouReps = item.originalRepeticoes != item.repeticoes
                                         val mudouDuracao = item.originalDuracao != item.duracaoSugeridaSegundos
+                                        val mudouDistancia = item.originalDistancia != item.distanciaSugeridaMetros
                                         val mudouCarga = item.originalCarga != item.cargaSugerida
                                         val mudouDesc = item.originalTempoDescanso != item.tempoDescansoSegundos
                                         val mudouOrdem = item.originalOrdem != novaOrdem
-                                        if (!mudouSeries && !mudouReps && !mudouDuracao && !mudouCarga && !mudouDesc && !mudouOrdem) {
+                                        if (!mudouSeries && !mudouReps && !mudouDuracao && !mudouDistancia && !mudouCarga && !mudouDesc && !mudouOrdem) {
                                             return@mapNotNull null
                                         }
                                         TreinoExercicioPatchUpdate(
@@ -432,6 +536,7 @@ fun TreinoFormScreen(
                                             series = if (mudouSeries) item.series else null,
                                             repeticoes = if (mudouReps) item.repeticoes else null,
                                             duracaoSugeridaSegundos = if (mudouDuracao) item.duracaoSugeridaSegundos else null,
+                                            distanciaSugeridaMetros = if (mudouDistancia) item.distanciaSugeridaMetros else null,
                                             cargaSugerida = if (mudouCarga) item.cargaSugerida else null,
                                             cargaSugeridaExplicitamenteNula =
                                                 mudouCarga && item.cargaSugerida == null,
@@ -534,7 +639,7 @@ fun TreinoFormScreen(
             exercicioNome = pendente.nome,
             tipoExercicio = tipoP,
             inicial = null,
-            onConfirmar = { series, reps, duracao, carga, descanso ->
+            onConfirmar = { series, reps, duracao, distancia, carga, descanso ->
                 val novo = ItemForm(
                     vinculoId = null,
                     exercicioId = pendente.id,
@@ -544,6 +649,7 @@ fun TreinoFormScreen(
                     series = series,
                     repeticoes = reps,
                     duracaoSugeridaSegundos = duracao,
+                    distanciaSugeridaMetros = distancia,
                     cargaSugerida = carga,
                     tempoDescansoSegundos = descanso,
                     ordemExecucao = itens.size + 1
@@ -562,13 +668,14 @@ fun TreinoFormScreen(
             exercicioNome = edit.exercicioNome,
             tipoExercicio = edit.tipoExercicio,
             inicial = edit,
-            onConfirmar = { series, reps, duracao, carga, descanso ->
+            onConfirmar = { series, reps, duracao, distancia, carga, descanso ->
                 itens = itens.map {
                     if (it.exercicioId == edit.exercicioId) {
                         it.copy(
                             series = series,
                             repeticoes = reps,
                             duracaoSugeridaSegundos = duracao,
+                            distanciaSugeridaMetros = distancia,
                             cargaSugerida = carga,
                             tempoDescansoSegundos = descanso
                         )
@@ -615,6 +722,7 @@ private fun BotaoSelecionarDias(
     onAbrir: () -> Unit
 ) {
     val colors = LocalAcademiaColors.current
+    val dimens = LocalDimens.current
     val resumo = if (dias.isEmpty()) "Toque para selecionar" else
         DiaSemana.values().filter { it in dias }.joinToString(" • ") { it.curto }
     Card(
@@ -672,14 +780,27 @@ private fun ItemTreinoCard(
     onRemover: () -> Unit
 ) {
     val colors = LocalAcademiaColors.current
+    val dimens = LocalDimens.current
     val eTempo = item.tipoExercicio == TipoExercicio.TEMPO
-    val corTipo = if (eTempo) colors.featureOrange else colors.featureBlue
-    val descricaoMetrica = if (eTempo) {
-        val dur = item.duracaoSugeridaSegundos
-        if (dur != null) "${item.series}x ${formatarSegundos(dur)}" else "${item.series}x (sem meta)"
-    } else {
-        "${item.series}x ${item.repeticoes.orEmpty()}" +
-            (item.cargaSugerida?.let { " • ${it} kg" } ?: "")
+    val eDistancia = item.tipoExercicio == TipoExercicio.DISTANCIA
+    val corTipo = when {
+        eTempo -> colors.featureOrange
+        eDistancia -> colors.featureGreen
+        else -> colors.featureBlue
+    }
+    val descricaoMetrica = when {
+        eTempo -> {
+            val dur = item.duracaoSugeridaSegundos
+            if (dur != null) "${item.series}x ${formatarSegundos(dur)}" else "${item.series}x (sem meta)"
+        }
+        eDistancia -> {
+            val dist = item.distanciaSugeridaMetros
+            if (dist != null) "${item.series}x ${formatarMetros(dist)}" else "${item.series}x (sem meta)"
+        }
+        else -> {
+            "${item.series}x ${item.repeticoes.orEmpty()}" +
+                (item.cargaSugerida?.let { " • ${it} kg" } ?: "")
+        }
     }
 
     Card(
@@ -702,7 +823,11 @@ private fun ItemTreinoCard(
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
-                        if (eTempo) Icons.Filled.Timer else Icons.Filled.Refresh,
+                        when {
+                            eTempo -> Icons.Filled.Timer
+                            eDistancia -> Icons.AutoMirrored.Filled.DirectionsRun
+                            else -> Icons.Filled.Refresh
+                        },
                         null, tint = corTipo, modifier = Modifier.size(18.dp)
                     )
                 }
@@ -737,15 +862,18 @@ private fun DialogoConfigurarItem(
     exercicioNome: String,
     tipoExercicio: TipoExercicio = TipoExercicio.REPETICAO,
     inicial: ItemForm?,
-    onConfirmar: (series: Int, repeticoes: String?, duracaoSegundos: Int?, cargaSugerida: Double?, tempoDescansoSegundos: Int) -> Unit,
+    onConfirmar: (series: Int, repeticoes: String?, duracaoSegundos: Int?, distanciaMetros: Int?, cargaSugerida: Double?, tempoDescansoSegundos: Int) -> Unit,
     onCancelar: () -> Unit
 ) {
     val colors = LocalAcademiaColors.current
+    val dimens = LocalDimens.current
     val eTempo = tipoExercicio == TipoExercicio.TEMPO
+    val eDistancia = tipoExercicio == TipoExercicio.DISTANCIA
     var seriesText by remember { mutableStateOf(inicial?.series?.toString() ?: "3") }
     var repsText by remember { mutableStateOf(inicial?.repeticoes ?: "10-12") }
     var duracaoText by remember { mutableStateOf(inicial?.duracaoSugeridaSegundos?.toString() ?: "") }
-    var mostrarCarga by remember { mutableStateOf(eTempo && inicial?.cargaSugerida != null || !eTempo) }
+    var distanciaText by remember { mutableStateOf(inicial?.distanciaSugeridaMetros?.toString() ?: "") }
+    var mostrarCarga by remember { mutableStateOf((eTempo || eDistancia) && inicial?.cargaSugerida != null || (!eTempo && !eDistancia)) }
     var cargaText by remember { mutableStateOf(inicial?.cargaSugerida?.toString().orEmpty()) }
     var descansoText by remember { mutableStateOf(inicial?.tempoDescansoSegundos?.toString() ?: "60") }
     var erro by remember { mutableStateOf<String?>(null) }
@@ -764,41 +892,50 @@ private fun DialogoConfigurarItem(
                 OutlinedTextField(
                     value = seriesText,
                     onValueChange = { if (it.all(Char::isDigit) || it.isEmpty()) seriesText = it },
-                    label = { Text("Séries") },
+                    label = { Text("Séries *") },
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     modifier = Modifier.fillMaxWidth(),
                     colors = camposCoresTreino()
                 )
-                if (eTempo) {
-                    OutlinedTextField(
+                when {
+                    eTempo -> OutlinedTextField(
                         value = duracaoText,
                         onValueChange = { if (it.all(Char::isDigit) || it.isEmpty()) duracaoText = it },
-                        label = { Text("Duração sugerida (segundos)") },
+                        label = { Text("Duração sugerida (segundos) *") },
                         placeholder = { Text("Ex: 45") },
                         singleLine = true,
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         modifier = Modifier.fillMaxWidth(),
                         colors = camposCoresTreino()
                     )
-                } else {
-                    OutlinedTextField(
+                    eDistancia -> OutlinedTextField(
+                        value = distanciaText,
+                        onValueChange = { if (it.all(Char::isDigit) || it.isEmpty()) distanciaText = it },
+                        label = { Text("Distância sugerida (metros) *") },
+                        placeholder = { Text("Ex: 5000") },
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = camposCoresTreino()
+                    )
+                    else -> OutlinedTextField(
                         value = repsText,
                         onValueChange = { repsText = it },
-                        label = { Text("Repetições (ex: 8-12)") },
+                        label = { Text("Repetições (ex: 8-12) *") },
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth(),
                         colors = camposCoresTreino()
                     )
                 }
-                if (eTempo && !mostrarCarga) {
+                if ((eTempo || eDistancia) && !mostrarCarga) {
                     TextButton(onClick = { mostrarCarga = true }) {
                         Icon(Icons.Filled.Add, null, modifier = androidx.compose.ui.Modifier.size(16.dp))
                         Spacer(Modifier.size(4.dp))
                         Text("Adicionar carga (opcional)", color = colors.textSecondary)
                     }
                 }
-                if (!eTempo || mostrarCarga) {
+                if (!eTempo && !eDistancia || mostrarCarga) {
                     OutlinedTextField(
                         value = cargaText,
                         onValueChange = { txt ->
@@ -815,7 +952,7 @@ private fun DialogoConfigurarItem(
                 OutlinedTextField(
                     value = descansoText,
                     onValueChange = { if (it.all(Char::isDigit) || it.isEmpty()) descansoText = it },
-                    label = { Text("Descanso (segundos)") },
+                    label = { Text("Descanso (segundos) *") },
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     modifier = Modifier.fillMaxWidth(),
@@ -831,16 +968,19 @@ private fun DialogoConfigurarItem(
                     val descanso = descansoText.toIntOrNull()
                     val carga = cargaText.takeIf { it.isNotBlank() }?.toDoubleOrNull()
                     val duracao = duracaoText.takeIf { it.isNotBlank() }?.toIntOrNull()
+                    val distancia = distanciaText.takeIf { it.isNotBlank() }?.toIntOrNull()
                     when {
                         series == null || series < 1 || series > 20 -> erro = "Séries entre 1 e 20"
-                        !eTempo && repsText.isBlank() -> erro = "Informe as repetições"
-                        eTempo && duracaoText.isNotBlank() && (duracao == null || duracao < 1) -> erro = "Duração inválida"
+                        !eTempo && !eDistancia && repsText.isBlank() -> erro = "Informe as repetições"
+                        eTempo && (duracaoText.isBlank() || duracao == null || duracao < 1) -> erro = "Informe a duração em segundos"
+                        eDistancia && (distanciaText.isBlank() || distancia == null || distancia < 1) -> erro = "Informe a distância em metros"
                         descanso == null || descanso < 0 || descanso > 3600 -> erro = "Descanso entre 0 e 3600s"
                         cargaText.isNotBlank() && (carga == null || carga <= 0) -> erro = "Carga deve ser positiva"
                         else -> onConfirmar(
                             series,
-                            if (!eTempo) repsText.trim() else null,
+                            if (!eTempo && !eDistancia) repsText.trim() else null,
                             if (eTempo) duracao else null,
+                            if (eDistancia) distancia else null,
                             carga,
                             descanso
                         )
@@ -866,4 +1006,9 @@ private fun formatarSegundos(s: Int): String {
     val min = s / 60
     val rest = s % 60
     return if (rest == 0) "${min}min" else "${min}min ${rest}s"
+}
+
+private fun formatarMetros(m: Int): String {
+    if (m <= 0) return "0m"
+    return if (m >= 1000) "${"%.1f".format(m / 1000.0)}km" else "${m}m"
 }

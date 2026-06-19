@@ -168,8 +168,12 @@ fun AcademiaTheme(
     }
 
     val academiaColors = if (darkTheme) DarkAcademiaTesteColors else LightAcademiaColors
+    val dimens = rememberDimens()
 
-    CompositionLocalProvider(LocalAcademiaColors provides academiaColors) {
+    CompositionLocalProvider(
+        LocalAcademiaColors provides academiaColors,
+        LocalDimens provides dimens
+    ) {
         MaterialTheme(
             colorScheme = colorScheme,
             typography = Typography, // Lembre-se de configurar as fontes aqui!

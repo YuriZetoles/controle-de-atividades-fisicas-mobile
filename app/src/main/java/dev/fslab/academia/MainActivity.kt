@@ -7,6 +7,8 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
+import androidx.lifecycle.viewmodel.compose.viewModel
+import dev.fslab.academia.ui.viewmodel.TreinoViewModel
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -149,14 +151,10 @@ fun AcademiaApp(
             when (val state = authState) {
                 is AuthState.Success -> {
                     if (!state.user.hasProfile) {
-                        // Se logou mas não tem perfil (ex: primeiro login social), 
-                        // manda para a tela de completar cadastro pré-preenchido
+                        // Usuário autenticado mas sem perfil (ex: primeiro login social).
+                        // Mantém Login na pilha para que o botão voltar funcione.
                         cadastroViewModel.preencherDadosSociais(state.user.name, state.user.email)
-                        
-                        navController.navigate(Screen.Cadastro.route) {
-                            popUpTo(Screen.Login.route) { inclusive = true }
-                            launchSingleTop = true
-                        }
+                        navController.navigateSafely(Screen.Cadastro.route)
                     } else {
                         val targetRoute = if (state.user.tipo == UserTipo.TREINADOR) {
                             Screen.TreinadorHome.route
@@ -272,7 +270,19 @@ fun AcademiaApp(
 
             composable(Screen.Cadastro.route) {
                 CadastroScreen(
-                    onBack = { navController.popBackStackSafely() },
+                    onBack = {
+                        if (navController.previousBackStackEntry != null) {
+                            navController.popBackStackSafely()
+                        } else {
+                            // Pilha vazia (redirecionado via auth sem Login no back stack).
+                            // Faz logout e vai para Login explicitamente.
+                            authViewModel.logout()
+                            navController.navigate(Screen.Login.route) {
+                                popUpTo(0) { inclusive = true }
+                                launchSingleTop = true
+                            }
+                        }
+                    },
                     onSuccess = {
                         val route = if (cadastroViewModel.tipo == UserTipo.TREINADOR) {
                             Screen.TreinadorHome.route
@@ -416,7 +426,9 @@ fun AcademiaApp(
                     exercicioId = null,
                     onBack = { navController.popBackStackSafely() },
                     onSalvo = { id ->
-                        navController.navigateSafely(Screen.ExercicioDetalhe.comId(id))
+                        navController.navigateSafely(Screen.ExercicioDetalhe.comId(id)) {
+                            popUpTo(Screen.ExercicioCriar.route) { inclusive = true }
+                        }
                     }
                 )
             }
@@ -491,6 +503,7 @@ fun AcademiaApp(
             }
 
             composable(Screen.TreinoCriar.route) { entry ->
+                val treinoFormViewModel: TreinoViewModel = viewModel()
                 val novoId by entry.savedStateHandle
                     .getStateFlow<String?>("novo_exercicio_id", null)
                     .collectAsState()
@@ -498,7 +511,9 @@ fun AcademiaApp(
                     treinoId = null,
                     onBack = { navController.popBackStackSafely() },
                     onSalvo = { id ->
-                        navController.navigateSafely(Screen.TreinoDetalhe.comId(id))
+                        navController.navigateSafely(Screen.TreinoDetalhe.comId(id)) {
+                            popUpTo(Screen.TreinoCriar.route) { inclusive = true }
+                        }
                     },
                     onCriarExercicio = {
                         navController.navigateSafely(Screen.ExercicioCriarParaTreino.route)
@@ -506,7 +521,8 @@ fun AcademiaApp(
                     novoExercicioId = novoId,
                     onConsumirNovoExercicio = {
                         entry.savedStateHandle["novo_exercicio_id"] = null
-                    }
+                    },
+                    viewModel = treinoFormViewModel
                 )
             }
 

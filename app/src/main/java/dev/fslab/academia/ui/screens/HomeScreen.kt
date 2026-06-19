@@ -76,6 +76,7 @@ import dev.fslab.academia.ui.components.MaisMenuBottomSheet
 import dev.fslab.academia.ui.components.alunoNavItems
 import dev.fslab.academia.ui.theme.AcademiaTheme
 import dev.fslab.academia.ui.theme.LocalAcademiaColors
+import dev.fslab.academia.ui.theme.LocalDimens
 import dev.fslab.academia.ui.viewmodel.AlunoVinculoState
 import dev.fslab.academia.ui.viewmodel.HomeUiState
 import dev.fslab.academia.ui.viewmodel.HomeViewModel
@@ -138,6 +139,7 @@ fun HomeScreen(
     homeViewModel: HomeViewModel = viewModel()
 ) {
     val colors = LocalAcademiaColors.current
+    val dimens = LocalDimens.current
     val context = LocalContext.current
     var mostrarMaisMenu by remember { mutableStateOf(false) }
     val homeUiState by homeViewModel.uiState.collectAsState()
@@ -187,9 +189,9 @@ fun HomeScreen(
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
                 .padding(innerPadding)
-                .padding(horizontal = 24.dp)
+                .padding(horizontal = dimens.screenPaddingH)
         ) {
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(dimens.spaceLg))
 
             // ── Header: avatar + saudação + streak ────────────────────────────
             Row(
@@ -395,7 +397,7 @@ fun HomeScreen(
                             .background(colors.primary.copy(alpha = 0.08f))
                             .border(1.dp, colors.primary.copy(alpha = 0.25f), RoundedCornerShape(16.dp))
                             .clickable { onBuscarTreinador() }
-                            .padding(16.dp)
+                            .padding(dimens.cardPadding)
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Box(
@@ -445,7 +447,7 @@ fun HomeScreen(
                             .clip(RoundedCornerShape(16.dp))
                             .background(colors.featureOrange.copy(alpha = 0.08f))
                             .border(1.dp, colors.featureOrange.copy(alpha = 0.3f), RoundedCornerShape(16.dp))
-                            .padding(16.dp)
+                            .padding(dimens.cardPadding)
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Box(
@@ -493,7 +495,7 @@ fun HomeScreen(
                         .background(colors.primary.copy(alpha = 0.12f))
                         .border(1.dp, colors.primary.copy(alpha = 0.5f), RoundedCornerShape(16.dp))
                         .clickable { onRetomarSessao() }
-                        .padding(16.dp)
+                        .padding(dimens.cardPadding)
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Box(
@@ -686,7 +688,7 @@ fun HomeScreen(
                             .fillMaxWidth()
                             .clip(RoundedCornerShape(16.dp))
                             .background(colors.errorBackground.copy(alpha = 0.3f))
-                            .padding(16.dp)
+                            .padding(dimens.cardPadding)
                     ) {
                         Text(
                             text = state.message,

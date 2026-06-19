@@ -62,6 +62,7 @@ import dev.fslab.academia.ui.components.StatsSection
 import dev.fslab.academia.ui.components.alunoNavItems
 import dev.fslab.academia.ui.theme.AcademiaColors
 import dev.fslab.academia.ui.theme.LocalAcademiaColors
+import dev.fslab.academia.ui.theme.LocalDimens
 import dev.fslab.academia.ui.viewmodel.HistoricoUiState
 import dev.fslab.academia.ui.viewmodel.HistoricoViewModel
 import dev.fslab.academia.ui.viewmodel.PeriodoFiltro
@@ -83,6 +84,7 @@ fun HistoricoScreen(
     viewModel: HistoricoViewModel = viewModel()
 ) {
     val colors = LocalAcademiaColors.current
+    val dimens = LocalDimens.current
     val uiState by viewModel.uiState.collectAsState()
     val carregarMaisState by viewModel.carregarMaisState.collectAsState()
     val periodoFiltro by viewModel.periodoFiltro.collectAsState()
@@ -282,14 +284,14 @@ fun HistoricoScreen(
                     item {
                         when (carregarMaisState) {
                             is SessoesCarregarMaisState.Idle -> {
-                                Box(Modifier.fillMaxWidth().padding(16.dp), contentAlignment = Alignment.Center) {
+                                Box(Modifier.fillMaxWidth().padding(dimens.cardPadding), contentAlignment = Alignment.Center) {
                                     TextButton(onClick = { viewModel.carregarMaisSessoes() }) {
                                         Text("Carregar mais", color = colors.primary)
                                     }
                                 }
                             }
                             is SessoesCarregarMaisState.Loading -> {
-                                Box(Modifier.fillMaxWidth().padding(16.dp), contentAlignment = Alignment.Center) {
+                                Box(Modifier.fillMaxWidth().padding(dimens.cardPadding), contentAlignment = Alignment.Center) {
                                     CircularProgressIndicator(
                                         modifier = Modifier.height(24.dp).width(24.dp),
                                         color = colors.primary,
@@ -298,12 +300,12 @@ fun HistoricoScreen(
                                 }
                             }
                             is SessoesCarregarMaisState.AllLoaded -> {
-                                Box(Modifier.fillMaxWidth().padding(16.dp), contentAlignment = Alignment.Center) {
+                                Box(Modifier.fillMaxWidth().padding(dimens.cardPadding), contentAlignment = Alignment.Center) {
                                     Text("Fim do histórico", color = colors.textSecondary, style = MaterialTheme.typography.bodySmall)
                                 }
                             }
                             is SessoesCarregarMaisState.Error -> {
-                                Box(Modifier.fillMaxWidth().padding(16.dp), contentAlignment = Alignment.Center) {
+                                Box(Modifier.fillMaxWidth().padding(dimens.cardPadding), contentAlignment = Alignment.Center) {
                                     TextButton(onClick = { viewModel.carregarMaisSessoes() }) {
                                         Text("Erro — tentar novamente", color = colors.errorText)
                                     }
@@ -326,6 +328,7 @@ fun HistoricoScreen(
 
 @Composable
 private fun SessaoHistoricoCard(sessao: SessaoListItemData, colors: AcademiaColors, onClick: () -> Unit = {}) {
+    val dimens = LocalDimens.current
     val duracaoMin = calcularDuracaoMin(sessao.inicio, sessao.fim)
     val dataFormatada = formatarDataHoraHistorico(sessao.inicio)
     val (badgeBg, badgeFg, badgeText) = when (sessao.status) {
@@ -340,7 +343,7 @@ private fun SessaoHistoricoCard(sessao: SessaoListItemData, colors: AcademiaColo
         shape = RoundedCornerShape(12.dp)
     ) {
         Row(
-            modifier = Modifier.fillMaxWidth().padding(12.dp),
+            modifier = Modifier.fillMaxWidth().padding(dimens.cardPaddingSmall),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {

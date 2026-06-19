@@ -69,6 +69,7 @@ import dev.fslab.academia.model.TipoExercicio
 import dev.fslab.academia.ui.components.AcademiaAppBar
 import dev.fslab.academia.ui.theme.AcademiaColors
 import dev.fslab.academia.ui.theme.LocalAcademiaColors
+import dev.fslab.academia.ui.theme.LocalDimens
 import dev.fslab.academia.ui.viewmodel.HistoricoViewModel
 import dev.fslab.academia.ui.viewmodel.PeriodoFiltro
 import dev.fslab.academia.ui.viewmodel.ProgressaoUiState
@@ -89,6 +90,7 @@ fun HistoricoProgressaoScreen(
     viewModel: HistoricoViewModel = viewModel()
 ) {
     val colors = LocalAcademiaColors.current
+    val dimens = LocalDimens.current
     val progressaoState by viewModel.progressaoState.collectAsState()
     val periodoFiltro by viewModel.periodoFiltro.collectAsState()
     val recordeState by viewModel.recordeState.collectAsState()
@@ -213,12 +215,14 @@ fun HistoricoProgressaoScreen(
                         val progressaoCronologica = state.progressao.sortedBy { it.data }
                         val tipoExercicio = progressaoCronologica.firstOrNull()?.tipo ?: TipoExercicio.REPETICAO
                         val eTempo = tipoExercicio == TipoExercicio.TEMPO
+                        val eDistancia = tipoExercicio == TipoExercicio.DISTANCIA
 
                         item {
                             MetricasProgressao(progressao = progressaoCronologica, eTempo = eTempo, colors = colors)
                         }
 
-                        if (eTempo) {
+                        when {
+                        eTempo -> {
                             val temMelhorTempo = progressaoCronologica.any { it.melhorTempoSegundos != null }
                             if (temMelhorTempo) {
                                 item {
@@ -245,7 +249,39 @@ fun HistoricoProgressaoScreen(
                                     )
                                 }
                             }
-                        } else {
+                        }
+                        eDistancia -> {
+                            val temDistancia = progressaoCronologica.any { (it.distanciaTotalMetros ?: 0) > 0 }
+                            if (temDistancia) {
+                                item {
+                                    GraficoProgressao(
+                                        titulo = "Distância total por sessão (m)",
+                                        corLinha = colors.primary,
+                                        pontos = progressaoCronologica.map { (it.distanciaTotalMetros ?: 0).toFloat() },
+                                        datas = progressaoCronologica.map { it.data },
+                                        colors = colors,
+                                        formatarValor = { "${it.toInt()}m" }
+                                    )
+                                }
+                            }
+                            val temPace = progressaoCronologica.any { it.melhorPaceSegundosPorKm != null }
+                            if (temPace) {
+                                item {
+                                    GraficoProgressao(
+                                        titulo = "Melhor pace por sessão",
+                                        corLinha = colors.featureCyan,
+                                        pontos = progressaoCronologica.map { (it.melhorPaceSegundosPorKm ?: 0).toFloat() },
+                                        datas = progressaoCronologica.map { it.data },
+                                        colors = colors,
+                                        formatarValor = {
+                                            val sec = it.toInt()
+                                            "%d:%02d/km".format(sec / 60, sec % 60)
+                                        }
+                                    )
+                                }
+                            }
+                        }
+                        else -> {
                             item {
                                 GraficoProgressao(
                                     titulo = "Volume total por sessão (kg)",
@@ -271,6 +307,7 @@ fun HistoricoProgressaoScreen(
                                 }
                             }
                         }
+                        }
 
                         item {
                             Text(
@@ -282,16 +319,25 @@ fun HistoricoProgressaoScreen(
                             )
                         }
 
-                        if (eTempo) {
+                        when {
+                        eTempo -> {
                             val maxTempo = state.progressao.mapNotNull { it.melhorTempoSegundos }.maxOrNull() ?: 1
                             items(state.progressao.sortedByDescending { it.data }) { item ->
                                 ProgressaoItemCardTempo(item = item, maxTempo = maxTempo, colors = colors)
                             }
-                        } else {
+                        }
+                        eDistancia -> {
+                            val maxDist = state.progressao.mapNotNull { it.distanciaTotalMetros }.maxOrNull() ?: 1
+                            items(state.progressao.sortedByDescending { it.data }) { item ->
+                                ProgressaoItemCardDistancia(item = item, maxDistancia = maxDist, colors = colors)
+                            }
+                        }
+                        else -> {
                             val maxVolume = state.progressao.maxOfOrNull { it.volumeTotal } ?: 1.0
                             items(state.progressao.sortedByDescending { it.data }) { item ->
                                 ProgressaoItemCard(item = item, maxVolume = maxVolume, colors = colors)
                             }
+                        }
                         }
                     }
                 }
@@ -386,6 +432,7 @@ private fun GraficoProgressao(
     formatarValor: (Float) -> String = { "%.1f".format(it) }
 ) {
     if (pontos.size < 2) return
+    val dimens = LocalDimens.current
 
     val maxVal = pontos.max()
     val minVal = pontos.min()
@@ -398,7 +445,7 @@ private fun GraficoProgressao(
         colors = CardDefaults.cardColors(containerColor = colors.surface),
         shape = RoundedCornerShape(12.dp)
     ) {
-        Column(modifier = Modifier.padding(12.dp)) {
+        Column(modifier = Modifier.padding(dimens.cardPaddingSmall)) {
             Row(
                 Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -542,6 +589,7 @@ private fun GraficoProgressao(
 
 @Composable
 private fun ProgressaoItemCard(item: ProgressaoItemData, maxVolume: Double, colors: AcademiaColors) {
+    val dimens = LocalDimens.current
     val progress = if (maxVolume > 0) (item.volumeTotal / maxVolume).toFloat().coerceIn(0f, 1f) else 0f
     val dataFormatada = formatarDataProgressaoItem(item.data)
 
@@ -550,7 +598,7 @@ private fun ProgressaoItemCard(item: ProgressaoItemData, maxVolume: Double, colo
         colors = CardDefaults.cardColors(containerColor = colors.surface),
         shape = RoundedCornerShape(12.dp)
     ) {
-        Column(modifier = Modifier.padding(12.dp)) {
+        Column(modifier = Modifier.padding(dimens.cardPaddingSmall)) {
             Row(
                 Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -587,6 +635,7 @@ private fun ProgressaoItemCard(item: ProgressaoItemData, maxVolume: Double, colo
 
 @Composable
 private fun ProgressaoItemCardTempo(item: ProgressaoItemData, maxTempo: Int, colors: AcademiaColors) {
+    val dimens = LocalDimens.current
     val melhor = item.melhorTempoSegundos ?: 0
     val progress = if (maxTempo > 0) (melhor.toFloat() / maxTempo).coerceIn(0f, 1f) else 0f
     val dataFormatada = formatarDataProgressaoItem(item.data)
@@ -596,7 +645,7 @@ private fun ProgressaoItemCardTempo(item: ProgressaoItemData, maxTempo: Int, col
         colors = CardDefaults.cardColors(containerColor = colors.surface),
         shape = RoundedCornerShape(12.dp)
     ) {
-        Column(modifier = Modifier.padding(12.dp)) {
+        Column(modifier = Modifier.padding(dimens.cardPaddingSmall)) {
             Row(
                 Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -636,6 +685,60 @@ private fun ProgressaoItemCardTempo(item: ProgressaoItemData, maxTempo: Int, col
     }
 }
 
+@Composable
+private fun ProgressaoItemCardDistancia(item: ProgressaoItemData, maxDistancia: Int, colors: AcademiaColors) {
+    val dimens = LocalDimens.current
+    val dist = item.distanciaTotalMetros ?: 0
+    val progress = if (maxDistancia > 0) (dist.toFloat() / maxDistancia).coerceIn(0f, 1f) else 0f
+    val dataFormatada = formatarDataProgressaoItem(item.data)
+
+    Card(
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
+        colors = CardDefaults.cardColors(containerColor = colors.surface),
+        shape = RoundedCornerShape(12.dp)
+    ) {
+        Column(modifier = Modifier.padding(dimens.cardPaddingSmall)) {
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.Top
+            ) {
+                Column {
+                    Text(dataFormatada, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Medium, color = colors.textPrimary)
+                    val detalhes = buildString {
+                        item.melhorPaceSegundosPorKm?.let { pace ->
+                            append("pace: %d:%02d/km".format(pace / 60, pace % 60))
+                        }
+                        item.mediaPaceSegundosPorKm?.let { pace ->
+                            if (isNotEmpty()) append(" · ")
+                            append("médio: %d:%02d/km".format(pace / 60, pace % 60))
+                        }
+                    }
+                    if (detalhes.isNotBlank()) {
+                        Text(detalhes, style = MaterialTheme.typography.labelSmall, color = colors.textSecondary)
+                    }
+                }
+                Column(horizontalAlignment = Alignment.End) {
+                    Text(
+                        if (dist > 0) "${dist}m" else "—",
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = colors.primary
+                    )
+                    Text("distância total", style = MaterialTheme.typography.labelSmall, color = colors.textSecondary)
+                }
+            }
+            Spacer(Modifier.height(6.dp))
+            LinearProgressIndicator(
+                progress = { progress },
+                modifier = Modifier.fillMaxWidth().height(4.dp).clip(RoundedCornerShape(2.dp)),
+                color = colors.primary,
+                trackColor = colors.inputBorder
+            )
+        }
+    }
+}
+
 private fun formatarSegundosCurto(segundos: Int): String {
     val min = segundos / 60
     val seg = segundos % 60
@@ -653,6 +756,7 @@ private fun formatarDataCurtaProgressao(iso: String?): String {
 
 @Composable
 private fun CardRecordePr(recordeState: RecordeUiState, colors: AcademiaColors) {
+    val dimens = LocalDimens.current
     val recorde = (recordeState as? RecordeUiState.Success)?.data ?: return
     val prOuro = colors.featureOrange
 
@@ -664,7 +768,7 @@ private fun CardRecordePr(recordeState: RecordeUiState, colors: AcademiaColors) 
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(containerColor = prOuro.copy(alpha = 0.08f))
     ) {
-        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Column(modifier = Modifier.padding(dimens.cardPadding), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Icon(Icons.Filled.EmojiEvents, contentDescription = null, tint = prOuro, modifier = Modifier.size(20.dp))
                 Text(

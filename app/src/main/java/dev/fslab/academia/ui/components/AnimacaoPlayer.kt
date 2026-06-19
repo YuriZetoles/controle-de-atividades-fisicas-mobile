@@ -16,6 +16,7 @@ import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.key
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
@@ -108,11 +109,15 @@ private fun WebmPlayerView(
     }
     LaunchedEffect(isPlaying) { exoPlayer.playWhenReady = isPlaying }
     DisposableEffect(url) { onDispose { exoPlayer.release() } }
-    AndroidView(
-        factory = { ctx -> TextureView(ctx).apply { exoPlayer.setVideoTextureView(this) } },
-        update = { view -> view.setOnClickListener { onTogglePause() } },
-        modifier = modifier
-    )
+    // key(url) força recriação do AndroidView quando url muda,
+    // garantindo que a nova TextureView seja attachada ao novo ExoPlayer.
+    key(url) {
+        AndroidView(
+            factory = { ctx -> TextureView(ctx).apply { exoPlayer.setVideoTextureView(this) } },
+            update = { view -> view.setOnClickListener { onTogglePause() } },
+            modifier = modifier
+        )
+    }
 }
 
 @Composable
@@ -125,7 +130,7 @@ private fun AnimatedMediaView(
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
-    val drawableRef = remember { mutableStateOf<AnimatedImageDrawable?>(null) }
+    val drawableRef = remember(url) { mutableStateOf<AnimatedImageDrawable?>(null) }
     val imageLoader = remember {
         ImageLoader.Builder(context)
             .components { add(ImageDecoderDecoder.Factory()) }

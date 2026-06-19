@@ -8,6 +8,7 @@ data class SessaoSerieData(
     @SerializedName("repeticoes_realizadas") val repeticoesRealizadas: Int? = null,
     @SerializedName("carga_utilizada") val cargaUtilizada: String? = null,
     @SerializedName("tempo_realizado_segundos") val tempoRealizadoSegundos: Int? = null,
+    @SerializedName("distancia_realizada_metros") val distanciaRealizadaMetros: Int? = null,
     @SerializedName("status") val status: String = "PENDENTE",
     @SerializedName("observacoes") val observacoes: String? = null
 )
@@ -26,6 +27,7 @@ data class SessaoExercicioTemplate(
     @SerializedName("series") val series: Int,
     @SerializedName("repeticoes") val repeticoes: String? = null,
     @SerializedName("duracao_sugerida_segundos") val duracaoSugeridaSegundos: Int? = null,
+    @SerializedName("distancia_sugerida_metros") val distanciaSugeridaMetros: Int? = null,
     @SerializedName("carga_sugerida") val cargaSugerida: String? = null,
     @SerializedName("tempo_descanso_segundos") val tempoDescansoSegundos: Int,
     @SerializedName("ordem_execucao") val ordemExecucao: Int,
@@ -67,6 +69,8 @@ data class SessaoResumoData(
     @SerializedName("series_total") val seriesTotal: Int,
     @SerializedName("volume_total_kg") val volumeTotalKg: Double,
     @SerializedName("tempo_total_isometria_segundos") val tempoTotalIsometriaSegundos: Int = 0,
+    @SerializedName("distancia_total_metros") val distanciaTotalMetros: Int = 0,
+    @SerializedName("pace_medio_segundos_por_km") val paceMedioSegundosPorKm: Int? = null,
     @SerializedName("taxa_conclusao") val taxaConclusao: Double
 )
 
@@ -89,6 +93,7 @@ data class SessaoSerieItemRequest(
     @SerializedName("repeticoes_realizadas") val repeticoesRealizadas: Int? = null,
     @SerializedName("carga_utilizada") val cargaUtilizada: String? = null,
     @SerializedName("tempo_realizado_segundos") val tempoRealizadoSegundos: Int? = null,
+    @SerializedName("distancia_realizada_metros") val distanciaRealizadaMetros: Int? = null,
     @SerializedName("status") val status: String
 )
 

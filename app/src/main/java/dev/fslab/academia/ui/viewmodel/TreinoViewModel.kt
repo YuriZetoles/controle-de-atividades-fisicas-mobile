@@ -70,6 +70,43 @@ data class TreinoFiltros(
     val somenteComExercicios: Boolean = false
 )
 
+data class TreinoFormItemRascunho(
+    val vinculoId: String?,
+    val exercicioId: String,
+    val exercicioNome: String,
+    val exercicioDescricao: String?,
+    val tipoExercicio: dev.fslab.academia.model.TipoExercicio,
+    val series: Int,
+    val repeticoes: String?,
+    val duracaoSugeridaSegundos: Int?,
+    val distanciaSugeridaMetros: Int?,
+    val cargaSugerida: Double?,
+    val tempoDescansoSegundos: Int,
+    val ordemExecucao: Int,
+    val originalSeries: Int?,
+    val originalRepeticoes: String?,
+    val originalDuracao: Int?,
+    val originalDistancia: Int?,
+    val originalCarga: Double?,
+    val originalTempoDescanso: Int?,
+    val originalOrdem: Int?
+)
+
+data class TreinoFormRascunho(
+    val treinoId: String? = null,
+    val ativo: Boolean = false,
+    val nome: String = "",
+    val descricao: String = "",
+    val descricaoOriginal: String? = null,
+    val ordemAutomatica: Int? = null,
+    val ordemOriginal: Int? = null,
+    val dias: Set<DiaSemana> = emptySet(),
+    val diasOriginal: List<DiaSemana>? = null,
+    val itens: List<TreinoFormItemRascunho> = emptyList(),
+    val idsOriginais: Set<String> = emptySet(),
+    val formularioInicializado: Boolean = false
+)
+
 class TreinoViewModel : ViewModel() {
 
     private val _uiState = MutableStateFlow<TreinoListUiState>(TreinoListUiState.Idle)
@@ -92,6 +129,12 @@ class TreinoViewModel : ViewModel() {
 
     private val _duplicarState = MutableStateFlow<TreinoDuplicarUiState>(TreinoDuplicarUiState.Idle)
     val duplicarState: StateFlow<TreinoDuplicarUiState> = _duplicarState.asStateFlow()
+
+    private val _formRascunho = MutableStateFlow(TreinoFormRascunho())
+    val formRascunho: StateFlow<TreinoFormRascunho> = _formRascunho.asStateFlow()
+
+    fun salvarRascunho(rascunho: TreinoFormRascunho) { _formRascunho.value = rascunho }
+    fun limparRascunho() { _formRascunho.value = TreinoFormRascunho() }
 
     fun atualizarFiltros(novo: TreinoFiltros) {
         _filtros.value = novo
@@ -301,6 +344,7 @@ class TreinoViewModel : ViewModel() {
                                 upd.series?.let { put("series", it) }
                                 upd.repeticoes?.let { put("repeticoes", it) }
                                 upd.duracaoSugeridaSegundos?.let { put("duracao_sugerida_segundos", it) }
+                                upd.distanciaSugeridaMetros?.let { put("distancia_sugerida_metros", it) }
                                 if (upd.cargaSugeridaExplicitamenteNula) {
                                     put("carga_sugerida", JSONObject.NULL)
                                 } else {
@@ -362,6 +406,7 @@ class TreinoViewModel : ViewModel() {
                 put("series", item.series)
                 item.repeticoes?.let { put("repeticoes", it) }
                 item.duracaoSugeridaSegundos?.let { put("duracao_sugerida_segundos", it) }
+                item.distanciaSugeridaMetros?.let { put("distancia_sugerida_metros", it) }
                 item.cargaSugerida?.let { put("carga_sugerida", it) }
                 put("tempo_descanso_segundos", item.tempoDescansoSegundos)
                 put("ordem_execucao", item.ordemExecucao)
@@ -412,6 +457,7 @@ data class TreinoExercicioPatchUpdate(
     val series: Int? = null,
     val repeticoes: String? = null,
     val duracaoSugeridaSegundos: Int? = null,
+    val distanciaSugeridaMetros: Int? = null,
     val cargaSugerida: Double? = null,
     val cargaSugeridaExplicitamenteNula: Boolean = false,
     val tempoDescansoSegundos: Int? = null,

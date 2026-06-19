@@ -24,6 +24,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import dev.fslab.academia.ui.theme.LocalAcademiaColors
+import dev.fslab.academia.ui.theme.LocalDimens
 import dev.fslab.academia.ui.viewmodel.PerfilTreinadorUiState
 import dev.fslab.academia.ui.viewmodel.PerfilTreinadorViewModel
 import dev.fslab.academia.ui.viewmodel.SolicitacaoEnvioState
@@ -37,6 +38,7 @@ fun PerfilTreinadorScreen(
     viewModel: PerfilTreinadorViewModel = viewModel()
 ) {
     val colors = LocalAcademiaColors.current
+    val dimens = LocalDimens.current
     val uiState by viewModel.uiState.collectAsState()
     val envioState by viewModel.envioState.collectAsState()
 
@@ -176,7 +178,7 @@ fun PerfilTreinadorScreen(
                                 .fillMaxWidth()
                                 .clip(RoundedCornerShape(12.dp))
                                 .background(colors.surface.copy(alpha = 0.5f))
-                                .padding(12.dp),
+                                .padding(dimens.cardPaddingSmall),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Icon(Icons.Filled.School, null, tint = colors.primary, modifier = Modifier.size(20.dp))
@@ -193,7 +195,7 @@ fun PerfilTreinadorScreen(
                                 .fillMaxWidth()
                                 .clip(RoundedCornerShape(12.dp))
                                 .background(colors.surface.copy(alpha = 0.5f))
-                                .padding(16.dp)
+                                .padding(dimens.cardPadding)
                         ) {
                             Text(t.apresentacao, style = MaterialTheme.typography.bodyMedium, color = colors.textPrimary.copy(alpha = 0.85f))
                         }
@@ -208,7 +210,7 @@ fun PerfilTreinadorScreen(
                                     .clip(RoundedCornerShape(14.dp))
                                     .background(colors.primary.copy(alpha = 0.1f))
                                     .border(1.dp, colors.primary.copy(alpha = 0.3f), RoundedCornerShape(14.dp))
-                                    .padding(16.dp),
+                                    .padding(dimens.cardPadding),
                                 horizontalArrangement = Arrangement.Center,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
@@ -259,6 +261,7 @@ fun PerfilTreinadorScreen(
 @Composable
 private fun SectionLabel(text: String) {
     val colors = LocalAcademiaColors.current
+    val dimens = LocalDimens.current
     Text(
         text = text.uppercase(),
         style = MaterialTheme.typography.labelSmall,

@@ -24,6 +24,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.DirectionsRun
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AttachFile
 import androidx.compose.material.icons.filled.Build
@@ -79,6 +80,7 @@ import dev.fslab.academia.ui.components.AcademiaAppBar
 import dev.fslab.academia.ui.components.AparelhoSelectionBottomSheet
 import dev.fslab.academia.ui.components.MusculoSelectionBottomSheet
 import dev.fslab.academia.ui.theme.LocalAcademiaColors
+import dev.fslab.academia.ui.theme.LocalDimens
 import dev.fslab.academia.ui.viewmodel.ExercicioDetalheUiState
 import dev.fslab.academia.ui.viewmodel.ExercicioSalvarUiState
 import dev.fslab.academia.ui.viewmodel.ExercicioViewModel
@@ -104,6 +106,7 @@ fun ExercicioFormScreen(
     viewModel: ExercicioViewModel = viewModel()
 ) {
     val colors = LocalAcademiaColors.current
+    val dimens = LocalDimens.current
     val context = LocalContext.current
     val ehEdicao = exercicioId != null
 
@@ -237,7 +240,7 @@ fun ExercicioFormScreen(
                             if (nomeErro != null) nomeErro = null
                             if (erroGeral != null) erroGeral = null
                         },
-                        label = { Text("Nome do exercício") },
+                        label = { Text("Nome do exercício *") },
                         placeholder = { Text("Ex: Supino reto") },
                         singleLine = true,
                         isError = nomeErro != null,
@@ -290,7 +293,7 @@ fun ExercicioFormScreen(
 
                 item {
                     SecaoCabecalho(
-                        titulo = "Músculos",
+                        titulo = "Músculos *",
                         subtitulo = "Pelo menos um músculo é obrigatório",
                         onAdicionar = { mostrarMusculos = true },
                         contagem = musculosSelecionados.size,
@@ -428,6 +431,7 @@ fun ExercicioFormScreen(
 
     if (mostrarAvisoTipo && tipoParaMudar != null) {
         val colors = LocalAcademiaColors.current
+        val dimens = LocalDimens.current
         AlertDialog(
             onDismissRequest = { mostrarAvisoTipo = false; tipoParaMudar = null },
             containerColor = colors.surface,
@@ -440,9 +444,15 @@ fun ExercicioFormScreen(
                 )
             },
             text = {
+                val tipoAnteriorLabel = when (tipoOriginal) {
+                    TipoExercicio.REPETICAO -> "repetições/carga"
+                    TipoExercicio.TEMPO -> "tempo"
+                    TipoExercicio.DISTANCIA -> "distância"
+                    null -> "anterior"
+                }
                 Text(
                     "Séries registradas para este exercício usam as métricas do tipo anterior " +
-                        "(${if (tipoOriginal == TipoExercicio.REPETICAO) "repetições/carga" else "tempo"}). " +
+                        "($tipoAnteriorLabel). " +
                         "O sistema não guarda qual tipo estava ativo em cada sessão — " +
                         "esses dados continuarão existindo mas podem aparecer inconsistentes nos gráficos de progressão.",
                     color = colors.textSecondary,
@@ -544,6 +554,7 @@ private fun BlocoAnimacao(
     onRemover: () -> Unit
 ) {
     val colors = LocalAcademiaColors.current
+    val dimens = LocalDimens.current
     val temAnimacaoNova = animacao != null
     val temAnimacaoExistente = !temAnimacaoNova && !animacaoUrlAtual.isNullOrBlank()
 
@@ -629,6 +640,7 @@ private fun SecaoCabecalho(
     erro: String?
 ) {
     val colors = LocalAcademiaColors.current
+    val dimens = LocalDimens.current
     Column(modifier = Modifier.fillMaxWidth()) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -688,6 +700,7 @@ private fun ItemMusculoSelecionado(
     onRemover: () -> Unit
 ) {
     val colors = LocalAcademiaColors.current
+    val dimens = LocalDimens.current
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = colors.surface),
@@ -757,6 +770,7 @@ private fun ItemAparelhoSelecionado(
     onRemover: () -> Unit
 ) {
     val colors = LocalAcademiaColors.current
+    val dimens = LocalDimens.current
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = colors.surface),
@@ -822,6 +836,7 @@ private fun SeletorTipoExercicio(
     onSelecionar: (TipoExercicio) -> Unit
 ) {
     val colors = LocalAcademiaColors.current
+    val dimens = LocalDimens.current
 
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -857,13 +872,28 @@ private fun SeletorTipoExercicio(
                     modifier = Modifier.weight(1f).fillMaxHeight(),
                     onClick = { onSelecionar(TipoExercicio.TEMPO) }
                 )
+                TipoOpcao(
+                    selecionado = tipoAtual == TipoExercicio.DISTANCIA,
+                    icone = Icons.AutoMirrored.Filled.DirectionsRun,
+                    titulo = "Distância",
+                    subtitulo = "Meta em metros",
+                    corAtiva = colors.primary,
+                    modifier = Modifier.weight(1f).fillMaxHeight(),
+                    onClick = { onSelecionar(TipoExercicio.DISTANCIA) }
+                )
             }
-            if (tipoAtual == TipoExercicio.TEMPO) {
-                Text(
+            when (tipoAtual) {
+                TipoExercicio.TEMPO -> Text(
                     "Ideal para prancha, isometria, wall sit e similares.",
                     color = colors.textSecondary,
                     style = MaterialTheme.typography.labelMedium
                 )
+                TipoExercicio.DISTANCIA -> Text(
+                    "Ideal para corrida, caminhada, natação e ciclismo.",
+                    color = colors.textSecondary,
+                    style = MaterialTheme.typography.labelMedium
+                )
+                else -> Unit
             }
         }
     }
@@ -880,6 +910,7 @@ private fun TipoOpcao(
     onClick: () -> Unit
 ) {
     val colors = LocalAcademiaColors.current
+    val dimens = LocalDimens.current
     val bgColor = if (selecionado) corAtiva.copy(alpha = 0.15f) else colors.background
     val borderColor = if (selecionado) corAtiva else colors.lightGray.copy(alpha = 0.5f)
     val textColor = if (selecionado) corAtiva else colors.textSecondary
@@ -894,7 +925,7 @@ private fun TipoOpcao(
             .clip(RoundedCornerShape(12.dp))
             .background(bgColor)
             .clickable(onClick = onClick)
-            .padding(12.dp)
+            .padding(dimens.cardPaddingSmall)
     ) {
         Column(
             modifier = Modifier.fillMaxSize(),

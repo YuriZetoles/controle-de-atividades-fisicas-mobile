@@ -1,5 +1,6 @@
 package dev.fslab.academia.ui.screens.aluno
 
+import androidx.compose.animation.Crossfade
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -61,6 +62,8 @@ import dev.fslab.academia.model.TreinoData
 import dev.fslab.academia.model.TreinoExercicioDetalheData
 import dev.fslab.academia.ui.components.AcademiaAppBar
 import dev.fslab.academia.ui.theme.LocalAcademiaColors
+import dev.fslab.academia.ui.theme.LocalDimens
+import dev.fslab.academia.ui.util.Motion
 import dev.fslab.academia.ui.viewmodel.TreinoDeletarUiState
 import dev.fslab.academia.ui.viewmodel.TreinoDetalheUiState
 import dev.fslab.academia.ui.viewmodel.TreinoViewModel
@@ -75,6 +78,7 @@ fun TreinoDetalheScreen(
     viewModel: TreinoViewModel = viewModel()
 ) {
     val colors = LocalAcademiaColors.current
+    val dimens = LocalDimens.current
     val detalheState by viewModel.detalheState.collectAsState()
     val deletarState by viewModel.deletarState.collectAsState()
 
@@ -120,7 +124,8 @@ fun TreinoDetalheScreen(
                 )
                 .padding(innerPadding)
         ) {
-            when (val s = detalheState) {
+            Crossfade(targetState = detalheState, animationSpec = Motion.contentSpec(), label = "treinoDetalhe") { s ->
+            when (s) {
                 TreinoDetalheUiState.Idle, TreinoDetalheUiState.Loading -> {
                     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                         CircularProgressIndicator(color = colors.primary)
@@ -163,6 +168,7 @@ fun TreinoDetalheScreen(
                         onIniciarSessao = { onIniciarSessao(s.treino.id) }
                     )
                 }
+            }
             }
         }
     }
@@ -223,6 +229,7 @@ private fun DetalheConteudoTreino(
     onIniciarSessao: () -> Unit = {}
 ) {
     val colors = LocalAcademiaColors.current
+    val dimens = LocalDimens.current
     val dias = treino.diasSemana.orEmpty().mapNotNull(DiaSemana::fromApi)
     val totalSeries = treino.exercicios.sumOf { it.series }
 
@@ -310,7 +317,7 @@ private fun DetalheConteudoTreino(
                 shape = RoundedCornerShape(16.dp)
             ) {
                 Row(
-                    modifier = Modifier.fillMaxWidth().padding(16.dp),
+                    modifier = Modifier.fillMaxWidth().padding(dimens.cardPadding),
                     horizontalArrangement = Arrangement.SpaceEvenly
                 ) {
                     EstatisticaTreino("Exercícios", treino.exercicios.size.toString())
@@ -418,6 +425,7 @@ private fun DetalheConteudoTreino(
 @Composable
 private fun EstatisticaTreino(rotulo: String, valor: String) {
     val colors = LocalAcademiaColors.current
+    val dimens = LocalDimens.current
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Text(
             valor,
@@ -436,6 +444,7 @@ private fun EstatisticaTreino(rotulo: String, valor: String) {
 @Composable
 private fun ExercicioDoTreinoCard(item: TreinoExercicioDetalheData) {
     val colors = LocalAcademiaColors.current
+    val dimens = LocalDimens.current
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = colors.surface),
@@ -506,6 +515,7 @@ private fun ExercicioDoTreinoCard(item: TreinoExercicioDetalheData) {
 @Composable
 private fun AtributoChip(icone: androidx.compose.ui.graphics.vector.ImageVector, rotulo: String) {
     val colors = LocalAcademiaColors.current
+    val dimens = LocalDimens.current
     Row(
         modifier = Modifier
             .clip(RoundedCornerShape(10.dp))

@@ -25,6 +25,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import dev.fslab.academia.model.TreinadorData
 import dev.fslab.academia.ui.theme.LocalAcademiaColors
+import dev.fslab.academia.ui.theme.LocalDimens
 import dev.fslab.academia.ui.viewmodel.BuscarTreinadorUiState
 import dev.fslab.academia.ui.viewmodel.BuscarTreinadorViewModel
 
@@ -37,6 +38,7 @@ fun BuscarTreinadorScreen(
     viewModel: BuscarTreinadorViewModel = viewModel()
 ) {
     val colors = LocalAcademiaColors.current
+    val dimens = LocalDimens.current
     val uiState by viewModel.uiState.collectAsState()
     val search by viewModel.search.collectAsState()
 
@@ -141,10 +143,12 @@ fun BuscarTreinadorScreen(
                     } else {
                         LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                             items(state.treinadores, key = { it.id }) { treinador ->
-                                TreinadorCard(
-                                    treinador = treinador,
-                                    onClick = { onAbrirPerfil(treinador.id) }
-                                )
+                                Box(Modifier.animateItem()) {
+                                    TreinadorCard(
+                                        treinador = treinador,
+                                        onClick = { onAbrirPerfil(treinador.id) }
+                                    )
+                                }
                             }
                             item { Spacer(Modifier.height(16.dp)) }
                         }
@@ -158,6 +162,7 @@ fun BuscarTreinadorScreen(
 @Composable
 private fun TreinadorCard(treinador: TreinadorData, onClick: () -> Unit) {
     val colors = LocalAcademiaColors.current
+    val dimens = LocalDimens.current
     val especialidades = treinador.especializacao.split(",").map { it.trim() }.filter { it.isNotBlank() }
 
     Row(
@@ -167,7 +172,7 @@ private fun TreinadorCard(treinador: TreinadorData, onClick: () -> Unit) {
             .background(colors.surface.copy(alpha = 0.5f))
             .border(1.dp, colors.surface.copy(alpha = 0.15f), RoundedCornerShape(16.dp))
             .clickable(onClick = onClick)
-            .padding(16.dp),
+            .padding(dimens.cardPadding),
         verticalAlignment = Alignment.CenterVertically
     ) {
         if (!treinador.urlFoto.isNullOrBlank()) {

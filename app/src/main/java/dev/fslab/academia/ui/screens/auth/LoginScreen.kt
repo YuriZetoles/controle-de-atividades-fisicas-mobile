@@ -1,5 +1,6 @@
 package dev.fslab.academia.ui.screens.auth
 
+import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
@@ -8,14 +9,18 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
@@ -73,6 +78,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import dev.fslab.academia.ui.theme.AcademiaTheme
 import dev.fslab.academia.ui.theme.LocalAcademiaColors
+import dev.fslab.academia.ui.theme.LocalDimens
+import dev.fslab.academia.ui.util.Motion
 
 @Composable
 fun LoginScreen(
@@ -87,6 +94,7 @@ fun LoginScreen(
     onGoogleLogin: () -> Unit = {}
 ) {
     val colors = LocalAcademiaColors.current
+    val dimens = LocalDimens.current
 
     var email by remember { mutableStateOf("") }
     var senha by remember { mutableStateOf("") }
@@ -133,25 +141,36 @@ fun LoginScreen(
             }
         }
 
-        Column(
+        // safeDrawing = barras de status/navegação + recorte + teclado.
+        // Aplicado aqui, maxHeight passa a ser a altura da ÁREA SEGURA (sem cobrir nada).
+        BoxWithConstraints(
             modifier = Modifier
                 .fillMaxSize()
+                .windowInsetsPadding(WindowInsets.safeDrawing)
+        ) {
+        val alturaTela = maxHeight
+        // Uma única coluna rolável que preenche a área segura (heightIn = altura visível).
+        // Teclado fechado: conteúdo distribuído (SpaceBetween) e cabendo na tela, sem scroll.
+        // Teclado aberto: a área segura encolhe (safeDrawing inclui o ime) e o scroll leva
+        // o campo focado para cima do teclado (bring-into-view nativo do OutlinedTextField).
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(min = alturaTela)
                 .verticalScroll(rememberScrollState())
-                .imePadding()
-                .padding(horizontal = 24.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+                .padding(horizontal = dimens.screenPaddingH),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.SpaceBetween
         ) {
             // ─── Botão Alternar Tema ─────────────────────────────────
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 44.dp),
+                modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.End
             ) {
                 IconButton(
                     onClick = onToggleTheme,
                     modifier = Modifier
-                        .size(40.dp)
+                        .size(dimens.minTouchTarget)
                         .clip(CircleShape)
                         .background(colors.surface.copy(alpha = 0.5f))
                         .border(1.dp, colors.inputBorder.copy(alpha = 0.2f), CircleShape)
@@ -160,17 +179,22 @@ fun LoginScreen(
                         imageVector = if (isDarkTheme) Icons.Filled.LightMode else Icons.Filled.DarkMode,
                         contentDescription = "Trocar Tema",
                         tint = colors.textPrimary,
-                        modifier = Modifier.size(20.dp)
+                        modifier = Modifier.size(dimens.iconMd)
                     )
                 }
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
+            // Bloco central (marca + formulário) — agrupado para o SpaceBetween
+            // posicionar topo (tema), centro (este bloco) e rodapé corretamente.
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
 
             // ─── Logo Container (Figma 40:12) ────────────────────────
             Box(
                 modifier = Modifier
-                    .size(64.dp)
+                    .size(dimens.logoSize)
                     .shadow(
                         elevation = 20.dp,
                         shape = RoundedCornerShape(16.dp),
@@ -190,7 +214,7 @@ fun LoginScreen(
                 )
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(dimens.spaceXs))
 
             // ─── App Name (Figma 40:10) ──────────────────────────────
             Text(
@@ -216,7 +240,7 @@ fun LoginScreen(
                 modifier = Modifier.padding(top = 8.dp)
             )
 
-            Spacer(modifier = Modifier.height(64.dp))
+            Spacer(modifier = Modifier.height(dimens.spaceMd))
 
             // ─── Headline (Figma 40:19) ──────────────────────────────
             Text(
@@ -225,13 +249,15 @@ fun LoginScreen(
                 fontSize = 24.sp,
                 fontWeight = FontWeight.Bold,
                 letterSpacing = (-0.6).sp,
-                modifier = Modifier.padding(bottom = 32.dp)
+                modifier = Modifier.padding(bottom = dimens.spaceMd)
             )
 
             // ─── Formulário ──────────────────────────────────────────
             Column(
-                modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(20.dp)
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .animateContentSize(Motion.sizeSpec()),
+                verticalArrangement = Arrangement.spacedBy(dimens.spaceMd)
             ) {
                 // Campo E-MAIL
                 Column {
@@ -339,7 +365,7 @@ fun LoginScreen(
                     )
                 }
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(dimens.spaceMd))
 
                 // ─── Botão ENTRAR (Figma 40:50) ──────────────────────
                 Button(
@@ -347,14 +373,14 @@ fun LoginScreen(
                     enabled = !isLoading,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(56.dp)
+                        .height(dimens.buttonHeight)
                         .shadow(
                             elevation = 20.dp,
-                            shape = RoundedCornerShape(12.dp),
+                            shape = RoundedCornerShape(dimens.cornerRadius),
                             ambientColor = colors.primary.copy(alpha = 0.35f),
                             spotColor = colors.primary.copy(alpha = 0.35f)
                         ),
-                    shape = RoundedCornerShape(12.dp),
+                    shape = RoundedCornerShape(dimens.cornerRadius),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = colors.primary,
                         contentColor = Color.Black
@@ -377,29 +403,29 @@ fun LoginScreen(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(dimens.spaceSm))
                 Text(
                     text = "ou",
                     style = MaterialTheme.typography.bodySmall,
                     color = colors.textSecondary,
                     modifier = Modifier.align(Alignment.CenterHorizontally)
                 )
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(dimens.spaceSm))
 
                 OutlinedButton(
                     onClick = onGoogleLogin,
                     enabled = !isLoading,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(56.dp),
-                    shape = RoundedCornerShape(12.dp),
+                        .height(dimens.buttonHeight),
+                    shape = RoundedCornerShape(dimens.cornerRadius),
                     border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF4285F4))
                 ) {
                     Icon(
                         imageVector = Icons.Default.AccountCircle,
                         contentDescription = null,
                         tint = Color(0xFF4285F4),
-                        modifier = Modifier.size(20.dp)
+                        modifier = Modifier.size(dimens.iconMd)
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
@@ -410,21 +436,19 @@ fun LoginScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.weight(1f))
-            Spacer(modifier = Modifier.height(32.dp))
+            } // fim da área central rolável
 
-            // ─── Footer (Figma 40:56) ────────────────────────────────
+            // ─── Footer (Figma 40:56) — fixo no rodapé ───────────────
             Column(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 HorizontalDivider(
-                    modifier = Modifier.fillMaxWidth().padding(bottom = 25.dp),
+                    modifier = Modifier.fillMaxWidth().padding(bottom = dimens.spaceMd),
                     thickness = 1.dp,
-                    color = Color(0xFF171717)
+                    color = colors.inputBorder
                 )
                 Row(
-                    modifier = Modifier.padding(bottom = 32.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
@@ -441,6 +465,7 @@ fun LoginScreen(
                     )
                 }
             }
+        }
         }
     }
 }

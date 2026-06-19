@@ -52,6 +52,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
+import androidx.activity.compose.BackHandler
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
@@ -72,6 +73,7 @@ import dev.fslab.academia.model.AcademiaData
 import dev.fslab.academia.model.Genero
 import dev.fslab.academia.model.UserTipo
 import dev.fslab.academia.ui.theme.LocalAcademiaColors
+import dev.fslab.academia.ui.theme.LocalDimens
 import dev.fslab.academia.ui.viewmodel.CadastroUiState
 import dev.fslab.academia.ui.viewmodel.CadastroViewModel
 import java.time.Instant
@@ -89,6 +91,10 @@ fun CadastroScreen(
     val colors = LocalAcademiaColors.current
     val uiState by viewModel.uiState.collectAsState()
     val academias by viewModel.academias.collectAsState()
+
+    BackHandler(enabled = uiState is CadastroUiState.DadosPerfil) {
+        viewModel.voltarParaConta()
+    }
 
     Scaffold(
         topBar = {
@@ -159,10 +165,16 @@ fun CadastroScreen(
 @Composable
 fun StepConta(viewModel: CadastroViewModel) {
     val colors = LocalAcademiaColors.current
+    val dimens = LocalDimens.current
 
-    Column(modifier = Modifier.fillMaxSize().padding(24.dp).verticalScroll(rememberScrollState())) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(horizontal = dimens.screenPaddingH, vertical = dimens.screenPaddingV)
+            .verticalScroll(rememberScrollState())
+    ) {
         Text("Primeiro, os dados da sua conta", color = colors.textSecondary, fontSize = 14.sp)
-        Spacer(Modifier.height(24.dp))
+        Spacer(Modifier.height(dimens.spaceXl))
 
         CadastroField("Nome completo", viewModel.nome, { viewModel.nome = it }, Icons.Default.Person)
         CadastroField("E-mail", viewModel.email, { viewModel.email = it }, Icons.Default.Email, enabled = !viewModel.isSocial)
@@ -179,13 +191,13 @@ fun StepConta(viewModel: CadastroViewModel) {
             UserTypeButton("TREINADOR", viewModel.tipo == UserTipo.TREINADOR, { viewModel.tipo = UserTipo.TREINADOR }, Modifier.weight(1f))
         }
 
-        Spacer(Modifier.height(48.dp))
+        Spacer(Modifier.height(dimens.spaceXxl))
         Button(
             onClick = {
                 viewModel.avancarParaPerfil()
             },
-            modifier = Modifier.fillMaxWidth().height(56.dp),
-            shape = RoundedCornerShape(12.dp),
+            modifier = Modifier.fillMaxWidth().height(dimens.buttonHeight),
+            shape = RoundedCornerShape(dimens.cornerRadius),
             colors = ButtonDefaults.buttonColors(containerColor = colors.primary, contentColor = Color.Black)
         ) {
             Text("PRÓXIMO PASSO", fontWeight = FontWeight.ExtraBold)
@@ -199,7 +211,8 @@ fun StepConta(viewModel: CadastroViewModel) {
 @Composable
 fun StepPerfil(viewModel: CadastroViewModel, academias: List<AcademiaData>) {
     val colors = LocalAcademiaColors.current
-    
+    val dimens = LocalDimens.current
+
     // --- Lógica Date Picker ---
     var showDatePicker by remember { mutableStateOf(false) }
     var selectedDateText by remember { mutableStateOf("") }
@@ -241,9 +254,14 @@ fun StepPerfil(viewModel: CadastroViewModel, academias: List<AcademiaData>) {
     var graduacao by remember { mutableStateOf("") }
     var especializacao by remember { mutableStateOf("") }
 
-    Column(modifier = Modifier.fillMaxSize().padding(24.dp).verticalScroll(rememberScrollState())) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(horizontal = dimens.screenPaddingH, vertical = dimens.screenPaddingV)
+            .verticalScroll(rememberScrollState())
+    ) {
         Text("Agora, complete seu perfil", color = colors.textSecondary, fontSize = 14.sp)
-        Spacer(Modifier.height(24.dp))
+        Spacer(Modifier.height(dimens.spaceXl))
 
         // Campo Data de Nascimento Amigável
         Column(modifier = Modifier.padding(bottom = 16.dp)) {
@@ -335,7 +353,7 @@ fun StepPerfil(viewModel: CadastroViewModel, academias: List<AcademiaData>) {
             CadastroField("Especialização", especializacao, { especializacao = it }, null)
         }
 
-        Spacer(Modifier.height(48.dp))
+        Spacer(Modifier.height(dimens.spaceXxl))
         Button(
             onClick = {
                 val acId = academiaSelecionada?.id ?: ""
@@ -345,8 +363,8 @@ fun StepPerfil(viewModel: CadastroViewModel, academias: List<AcademiaData>) {
                     viewModel.finalizarCadastroTreinador(rawDateValue, sexo.valor, acId, cref, graduacao, especializacao)
                 }
             },
-            modifier = Modifier.fillMaxWidth().height(56.dp),
-            shape = RoundedCornerShape(12.dp),
+            modifier = Modifier.fillMaxWidth().height(dimens.buttonHeight),
+            shape = RoundedCornerShape(dimens.cornerRadius),
             colors = ButtonDefaults.buttonColors(containerColor = colors.primary, contentColor = Color.Black)
         ) {
             Text("CONCLUIR CADASTRO", fontWeight = FontWeight.ExtraBold)

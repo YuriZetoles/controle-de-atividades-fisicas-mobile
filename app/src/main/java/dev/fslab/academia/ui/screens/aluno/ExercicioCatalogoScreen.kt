@@ -19,6 +19,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.DirectionsRun
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.PlayCircle
@@ -31,6 +32,9 @@ import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Public
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Loop
+import androidx.compose.material.icons.filled.Straighten
+import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.AssistChipDefaults
 import androidx.compose.material3.Button
@@ -69,6 +73,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import dev.fslab.academia.model.EscopoExercicio
 import dev.fslab.academia.model.ExercicioData
 import dev.fslab.academia.model.ExercicioMusculoData
+import dev.fslab.academia.model.TipoExercicio
 import dev.fslab.academia.ui.components.AcademiaAppBar
 import dev.fslab.academia.ui.components.AparelhoSelectionBottomSheet
 import dev.fslab.academia.ui.components.AppNavigationBar
@@ -78,6 +83,9 @@ import dev.fslab.academia.ui.components.MapaCorporal
 import dev.fslab.academia.ui.components.MusculoSelectionBottomSheet
 import dev.fslab.academia.ui.components.alunoNavItems
 import dev.fslab.academia.ui.theme.LocalAcademiaColors
+import dev.fslab.academia.ui.theme.LocalDimens
+import dev.fslab.academia.ui.util.pressScale
+import dev.fslab.academia.ui.util.rememberInteractionSource
 import dev.fslab.academia.ui.viewmodel.ExercicioFiltros
 import dev.fslab.academia.ui.viewmodel.ExercicioListUiState
 import dev.fslab.academia.ui.viewmodel.ExercicioViewModel
@@ -91,6 +99,7 @@ fun ExercicioCatalogoScreen(
     viewModel: ExercicioViewModel = viewModel()
 ) {
     val colors = LocalAcademiaColors.current
+    val dimens = LocalDimens.current
     val uiState by viewModel.uiState.collectAsState()
     val filtros by viewModel.filtros.collectAsState()
 
@@ -206,6 +215,10 @@ fun ExercicioCatalogoScreen(
                             }
                             viewModel.atualizarFiltros(filtros.copy(comMidia = proximo))
                         },
+                        onAlternarTipo = { tipo ->
+                            val proximo = if (filtros.tipoExercicio == tipo) null else tipo
+                            viewModel.atualizarFiltros(filtros.copy(tipoExercicio = proximo))
+                        },
                         onLimpar = { viewModel.atualizarFiltros(ExercicioFiltros()) }
                     )
                 }
@@ -249,10 +262,12 @@ fun ExercicioCatalogoScreen(
                             }
                         }
                         items(state.exercicios, key = { it.id }) { exercicio ->
-                            ExercicioCard(
-                                exercicio = exercicio,
-                                onClick = { onAbrirDetalhe(exercicio.id) }
-                            )
+                            Box(Modifier.animateItem()) {
+                                ExercicioCard(
+                                    exercicio = exercicio,
+                                    onClick = { onAbrirDetalhe(exercicio.id) }
+                                )
+                            }
                         }
                     }
                 }
@@ -302,9 +317,11 @@ private fun BarraFiltros(
     onAlternarEscopo: (EscopoExercicio) -> Unit,
     onAlternarEmUso: () -> Unit,
     onAlternarComMidia: () -> Unit,
+    onAlternarTipo: (TipoExercicio) -> Unit,
     onLimpar: () -> Unit
 ) {
     val colors = LocalAcademiaColors.current
+    val dimens = LocalDimens.current
     val scroll = rememberScrollState()
     val temFiltros = filtros.grupoMuscular != null ||
         filtros.musculoIds.isNotEmpty() ||
@@ -312,7 +329,8 @@ private fun BarraFiltros(
         filtros.busca.isNotBlank() ||
         filtros.escopo != EscopoExercicio.TODOS ||
         filtros.emUso != null ||
-        filtros.comMidia != null
+        filtros.comMidia != null ||
+        filtros.tipoExercicio != null
 
     Row(
         modifier = Modifier.fillMaxWidth().horizontalScroll(scroll),
@@ -387,6 +405,27 @@ private fun BarraFiltros(
             leadingIcon = { Icon(Icons.Filled.PlayCircle, null, modifier = Modifier.size(18.dp)) },
             colors = academiaFilterChipColors()
         )
+        FilterChip(
+            selected = filtros.tipoExercicio == TipoExercicio.REPETICAO,
+            onClick = { onAlternarTipo(TipoExercicio.REPETICAO) },
+            label = { Text("Repetição") },
+            leadingIcon = { Icon(Icons.Filled.Loop, null, modifier = Modifier.size(18.dp)) },
+            colors = academiaFilterChipColors()
+        )
+        FilterChip(
+            selected = filtros.tipoExercicio == TipoExercicio.TEMPO,
+            onClick = { onAlternarTipo(TipoExercicio.TEMPO) },
+            label = { Text("Tempo") },
+            leadingIcon = { Icon(Icons.Filled.Timer, null, modifier = Modifier.size(18.dp)) },
+            colors = academiaFilterChipColors()
+        )
+        FilterChip(
+            selected = filtros.tipoExercicio == TipoExercicio.DISTANCIA,
+            onClick = { onAlternarTipo(TipoExercicio.DISTANCIA) },
+            label = { Text("Distância") },
+            leadingIcon = { Icon(Icons.Filled.Straighten, null, modifier = Modifier.size(18.dp)) },
+            colors = academiaFilterChipColors()
+        )
         if (temFiltros) {
             AssistChip(
                 onClick = onLimpar,
@@ -405,6 +444,7 @@ private fun BarraFiltros(
 @Composable
 private fun academiaFilterChipColors(): androidx.compose.material3.SelectableChipColors {
     val colors = LocalAcademiaColors.current
+    val dimens = LocalDimens.current
     return FilterChipDefaults.filterChipColors(
         containerColor = colors.surface,
         labelColor = colors.textPrimary,
@@ -421,11 +461,16 @@ private fun ExercicioCard(
     onClick: () -> Unit = {}
 ) {
     val colors = LocalAcademiaColors.current
+    val dimens = LocalDimens.current
     val descricao = exercicio.descricao?.takeIf { it.isNotBlank() } ?: "Sem descrição cadastrada"
     val primarios = exercicio.musculos.count { it.tipoAtivacao == "PRIMARIO" }
+    val interacao = rememberInteractionSource()
 
     ElevatedCard(
-        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick),
+        modifier = Modifier
+            .fillMaxWidth()
+            .pressScale(interacao)
+            .clickable(interactionSource = interacao, indication = null, onClick = onClick),
         colors = CardDefaults.elevatedCardColors(
             containerColor = colors.surface,
             contentColor = colors.textPrimary
@@ -433,7 +478,7 @@ private fun ExercicioCard(
         elevation = CardDefaults.elevatedCardElevation(defaultElevation = 2.dp)
     ) {
         Column(
-            modifier = Modifier.padding(16.dp),
+            modifier = Modifier.padding(dimens.cardPadding),
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             Row(
@@ -470,11 +515,31 @@ private fun ExercicioCard(
                 }
             }
 
-            Text(
-                "${exercicio.musculos.size} músculos • $primarios primários • ${exercicio.aparelhos.size} aparelhos",
-                color = colors.textSecondary,
-                style = MaterialTheme.typography.labelMedium
-            )
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Text(
+                    "${exercicio.musculos.size} músculos • $primarios primários • ${exercicio.aparelhos.size} aparelhos",
+                    color = colors.textSecondary,
+                    style = MaterialTheme.typography.labelMedium,
+                    modifier = Modifier.weight(1f)
+                )
+                val (tipoLabel, tipoIcone, tipoCor) = when (exercicio.tipo) {
+                    TipoExercicio.TEMPO -> Triple("Tempo", Icons.Filled.Timer, colors.featureOrange)
+                    TipoExercicio.DISTANCIA -> Triple("Distância", Icons.AutoMirrored.Filled.DirectionsRun, colors.featureGreen)
+                    else -> Triple("Repetição", Icons.Filled.Refresh, colors.featureBlue)
+                }
+                SuggestionChip(
+                    onClick = {},
+                    label = { Text(tipoLabel, style = MaterialTheme.typography.labelSmall) },
+                    icon = { Icon(tipoIcone, null, modifier = Modifier.size(14.dp), tint = tipoCor) },
+                    colors = SuggestionChipDefaults.suggestionChipColors(
+                        containerColor = tipoCor.copy(alpha = 0.12f),
+                        labelColor = tipoCor
+                    )
+                )
+            }
 
             if (exercicio.musculos.isNotEmpty()) {
                 Row(
@@ -501,6 +566,7 @@ private fun ExercicioCard(
 @Composable
 private fun MusculoChip(musculo: ExercicioMusculoData) {
     val colors = LocalAcademiaColors.current
+    val dimens = LocalDimens.current
     val ehPrimario = musculo.tipoAtivacao == "PRIMARIO"
     SuggestionChip(
         onClick = {},
@@ -522,6 +588,7 @@ private fun MusculoChip(musculo: ExercicioMusculoData) {
 @Composable
 private fun CardErro(mensagem: String, onTentarNovamente: () -> Unit) {
     val colors = LocalAcademiaColors.current
+    val dimens = LocalDimens.current
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = colors.surface)
@@ -551,6 +618,7 @@ private fun CardErro(mensagem: String, onTentarNovamente: () -> Unit) {
 @Composable
 private fun CardVazio() {
     val colors = LocalAcademiaColors.current
+    val dimens = LocalDimens.current
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = colors.surface)
