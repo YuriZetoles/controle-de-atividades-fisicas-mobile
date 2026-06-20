@@ -659,6 +659,7 @@ fun AcademiaApp(
                     currentUser = currentUser,
                     onBack = { navController.popBackStackSafely() },
                     onLogout = { authViewModel.logout() },
+                    onOpenPerfil = { navController.navigateSafely(Screen.Perfil.route) },
                     themeViewModel = themeViewModel,
                     perfilViewModel = perfilViewModel
                 )

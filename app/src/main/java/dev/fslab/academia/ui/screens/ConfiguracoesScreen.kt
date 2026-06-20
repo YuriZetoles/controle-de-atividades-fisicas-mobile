@@ -25,12 +25,16 @@ import androidx.compose.material.icons.filled.Brightness4
 import androidx.compose.material.icons.filled.Brightness7
 import androidx.compose.material.icons.filled.BrightnessAuto
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.LinkOff
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.PersonRemove
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -60,6 +64,7 @@ import dev.fslab.academia.model.User
 import dev.fslab.academia.model.UserTipo
 import dev.fslab.academia.ui.components.AcademiaAppBar
 import dev.fslab.academia.ui.theme.LocalAcademiaColors
+import dev.fslab.academia.ui.theme.LocalDimens
 import dev.fslab.academia.ui.viewmodel.PerfilUiState
 import dev.fslab.academia.ui.viewmodel.PerfilViewModel
 import dev.fslab.academia.ui.viewmodel.ThemeMode
@@ -71,10 +76,12 @@ fun ConfiguracoesScreen(
     currentUser: User?,
     onBack: () -> Unit,
     onLogout: () -> Unit = {},
+    onOpenPerfil: () -> Unit = {},
     themeViewModel: ThemeViewModel = viewModel(),
     perfilViewModel: PerfilViewModel = viewModel()
 ) {
     val colors = LocalAcademiaColors.current
+    val dimens = LocalDimens.current
     val context = LocalContext.current
     val themeMode by themeViewModel.themeMode.collectAsState()
     val perfilState by perfilViewModel.uiState.collectAsState()
@@ -109,23 +116,24 @@ fun ConfiguracoesScreen(
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
                 .padding(innerPadding)
-                .padding(horizontal = 20.dp)
+                .padding(horizontal = dimens.screenPaddingH)
                 .navigationBarsPadding()
         ) {
-            Spacer(Modifier.height(16.dp))
+            Spacer(Modifier.height(dimens.spaceLg))
 
-            // ── Perfil card ──────────────────────────────────────────────────
+            // ── Perfil ───────────────────────────────────────────────────────
             SecaoTitulo("Perfil")
-            Spacer(Modifier.height(8.dp))
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(colors.surface)
-                    .border(1.dp, colors.inputBorder, RoundedCornerShape(16.dp))
-                    .padding(16.dp)
+            Spacer(Modifier.height(dimens.spaceSm))
+            Card(
+                modifier = Modifier.fillMaxWidth().clickable { onOpenPerfil() },
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = colors.surface),
+                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
+                Row(
+                    modifier = Modifier.padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
                     Box(modifier = Modifier.size(56.dp)) {
                         AsyncImage(
                             model = ImageRequest.Builder(context)
@@ -149,56 +157,41 @@ fun ConfiguracoesScreen(
                             fontWeight = FontWeight.Bold,
                             color = colors.textPrimary
                         )
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(4.dp)
-                        ) {
-                            Icon(
-                                Icons.Filled.Email,
-                                contentDescription = null,
-                                tint = colors.textSecondary,
-                                modifier = Modifier.size(13.dp)
-                            )
-                            Text(
-                                text = currentUser?.email ?: "—",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = colors.textSecondary
-                            )
-                        }
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(4.dp)
-                        ) {
-                            Icon(
-                                Icons.Filled.Person,
-                                contentDescription = null,
-                                tint = colors.textSecondary,
-                                modifier = Modifier.size(13.dp)
-                            )
-                            Text(
-                                text = when (currentUser?.tipo) {
-                                    UserTipo.TREINADOR -> "Treinador"
-                                    else -> "Aluno"
-                                },
-                                style = MaterialTheme.typography.bodySmall,
-                                color = colors.textSecondary
-                            )
-                        }
+                        Spacer(Modifier.height(2.dp))
+                        Text(
+                            text = currentUser?.email ?: "—",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = colors.textSecondary
+                        )
+                        Text(
+                            text = when (currentUser?.tipo) {
+                                UserTipo.TREINADOR -> "Treinador"
+                                else -> "Aluno"
+                            },
+                            style = MaterialTheme.typography.labelSmall,
+                            color = colors.primary,
+                            fontWeight = FontWeight.Medium
+                        )
                     }
+                    Icon(
+                        Icons.Filled.ChevronRight,
+                        contentDescription = null,
+                        tint = colors.textSecondary,
+                        modifier = Modifier.size(20.dp)
+                    )
                 }
             }
 
-            Spacer(Modifier.height(24.dp))
+            Spacer(Modifier.height(dimens.spaceLg))
 
             // ── Aparência ─────────────────────────────────────────────────────
             SecaoTitulo("Aparência")
-            Spacer(Modifier.height(8.dp))
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(colors.surface)
-                    .border(1.dp, colors.inputBorder, RoundedCornerShape(16.dp))
+            Spacer(Modifier.height(dimens.spaceSm))
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = colors.surface),
+                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
             ) {
                 Column {
                     ThemeOption(
@@ -228,17 +221,16 @@ fun ConfiguracoesScreen(
                 }
             }
 
-            Spacer(Modifier.height(24.dp))
+            Spacer(Modifier.height(dimens.spaceLg))
 
             // ── Conta ─────────────────────────────────────────────────────────
             SecaoTitulo("Conta")
-            Spacer(Modifier.height(8.dp))
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(colors.surface)
-                    .border(1.dp, colors.inputBorder, RoundedCornerShape(16.dp))
+            Spacer(Modifier.height(dimens.spaceSm))
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = colors.surface),
+                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
             ) {
                 Column {
                     if (treinadorVinculado) {
@@ -271,9 +263,8 @@ fun ConfiguracoesScreen(
                 }
             }
 
-            Spacer(Modifier.height(32.dp))
+            Spacer(Modifier.height(dimens.spaceLg * 2))
 
-            // ── Versão ────────────────────────────────────────────────────────
             Text(
                 text = "Versão 1.0.0",
                 style = MaterialTheme.typography.labelSmall,
@@ -281,7 +272,7 @@ fun ConfiguracoesScreen(
                 modifier = Modifier.align(Alignment.CenterHorizontally)
             )
 
-            Spacer(Modifier.height(16.dp))
+            Spacer(Modifier.height(dimens.spaceLg))
         }
     }
 
@@ -421,12 +412,9 @@ private fun ThemeOption(
             }
         }
         if (mostrarDivisor) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(1.dp)
-                    .padding(horizontal = 16.dp)
-                    .background(colors.inputBorder.copy(alpha = 0.5f))
+            HorizontalDivider(
+                color = colors.inputBorder.copy(alpha = 0.5f),
+                modifier = Modifier.padding(horizontal = 16.dp)
             )
         }
     }
@@ -481,12 +469,9 @@ private fun ContaItem(
             }
         }
         if (mostrarDivisor) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(1.dp)
-                    .padding(horizontal = 16.dp)
-                    .background(colors.inputBorder.copy(alpha = 0.5f))
+            HorizontalDivider(
+                color = colors.inputBorder.copy(alpha = 0.5f),
+                modifier = Modifier.padding(horizontal = 16.dp)
             )
         }
     }
