@@ -6,6 +6,7 @@ import dev.fslab.academia.model.AlunoData
 import dev.fslab.academia.model.EstatisticasData
 import dev.fslab.academia.model.ExercicioFrequenteData
 import dev.fslab.academia.model.GrupoMuscularData
+import dev.fslab.academia.model.HistoricoPesoData
 import dev.fslab.academia.model.TreinoData
 import dev.fslab.academia.network.RetrofitClient
 import kotlinx.coroutines.async
@@ -26,7 +27,7 @@ import java.time.temporal.ChronoUnit
 sealed interface TreinadorAlunoDetalheUiState {
     data object Idle : TreinadorAlunoDetalheUiState
     data object Loading : TreinadorAlunoDetalheUiState
-    data class Success(
+    class Success(
         val aluno: AlunoData,
         val treinos: List<TreinoData>,
         val diasTreino: Set<Int>,
@@ -55,7 +56,8 @@ sealed interface AlunoEstatisticasUiState {
         val stats: EstatisticasData,
         val grupos: List<GrupoMuscularData>,
         val frequentes: List<ExercicioFrequenteData>,
-        val comparativo: ComparativoUiState
+        val comparativo: ComparativoUiState,
+        val historicoPeso: HistoricoPesoData? = null
     ) : AlunoEstatisticasUiState
     data class Error(val message: String) : AlunoEstatisticasUiState
 }
@@ -156,6 +158,9 @@ class TreinadorAlunoDetalheViewModel : ViewModel() {
                     val comparativoDeferred = async {
                         RetrofitClient.historicoApi.getComparativo(semanas = periodo.semanas, alunoId = alunoId)
                     }
+                    val pesoDeferred = async {
+                        runCatching { RetrofitClient.treinadorApi.getHistoricoPeso(alunoId) }.getOrNull()
+                    }
 
                     val statsResp = statsDeferred.await()
                     val stats = statsResp.body()?.data
@@ -175,12 +180,14 @@ class TreinadorAlunoDetalheViewModel : ViewModel() {
                             ComparativoUiState.SemDados
                         else -> ComparativoUiState.Success(comparativoData)
                     }
+                    val historicoPeso = pesoDeferred.await()?.body()?.data?.metricas
 
                     _estatisticasState.value = AlunoEstatisticasUiState.Success(
                         stats = stats,
                         grupos = grupos,
                         frequentes = frequentes,
-                        comparativo = comparativoState
+                        comparativo = comparativoState,
+                        historicoPeso = historicoPeso
                     )
                 }
             } catch (e: Exception) {

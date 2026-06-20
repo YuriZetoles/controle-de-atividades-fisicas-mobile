@@ -1,8 +1,10 @@
 package dev.fslab.academia.network
 
 import dev.fslab.academia.model.AlunoListResponse
+import dev.fslab.academia.model.HistoricoPesoResponse
 import dev.fslab.academia.model.TreinadorListResponse
 import dev.fslab.academia.model.TreinadorSingleResponse
+import retrofit2.Response
 import retrofit2.http.GET
 import retrofit2.http.Path
 import retrofit2.http.Query
@@ -22,4 +24,7 @@ interface TreinadorApi {
 
     @GET("treinadores/{id}")
     suspend fun getTreinadorById(@Path("id") id: String): TreinadorSingleResponse
+
+    @GET("alunos/{id}/historico-peso")
+    suspend fun getHistoricoPeso(@Path("id") alunoId: String): Response<HistoricoPesoResponse>
 }

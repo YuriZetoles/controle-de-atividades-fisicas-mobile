@@ -20,12 +20,16 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.TrendingDown
+import androidx.compose.material.icons.automirrored.filled.TrendingFlat
+import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.filled.AddCircle
 import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.FitnessCenter
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Insights
+import androidx.compose.material.icons.filled.MonitorWeight
 import androidx.compose.material.icons.filled.PersonOff
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -56,6 +60,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import dev.fslab.academia.model.AlunoData
+import dev.fslab.academia.model.HistoricoPesoData
 import dev.fslab.academia.model.TreinoData
 import dev.fslab.academia.ui.components.AcademiaAppBar
 import dev.fslab.academia.ui.components.ExerciciosFrequentesSection
@@ -567,9 +572,13 @@ private fun EstatisticasAlunoSection(
                     GruposMusculareSection(grupos = state.grupos, colors = colors)
                 }
                 if (state.frequentes.isNotEmpty()) {
-                    // onTap sem ação: treinador ainda não navega pra progressão por exercício
-                    // (isso existe só na visão do próprio aluno, em HistoricoScreen).
                     ExerciciosFrequentesSection(frequentes = state.frequentes, colors = colors, onTap = {})
+                }
+                state.historicoPeso?.let { peso ->
+                    if (peso.totalRegistros > 0) {
+                        Spacer(modifier = Modifier.height(16.dp))
+                        SecaoPesoAluno(historicoPeso = peso, colors = colors)
+                    }
                 }
             }
         }
@@ -646,6 +655,146 @@ private fun AvatarCliente(nome: String, size: androidx.compose.ui.unit.Dp) {
             fontWeight = FontWeight.Bold,
             color = colors.primary
         )
+    }
+}
+
+@Composable
+private fun SecaoPesoAluno(historicoPeso: HistoricoPesoData, colors: dev.fslab.academia.ui.theme.AcademiaColors) {
+    val tendenciaIcon = when (historicoPeso.tendencia) {
+        "SUBINDO" -> Icons.AutoMirrored.Filled.TrendingUp
+        "DESCENDO" -> Icons.AutoMirrored.Filled.TrendingDown
+        else -> Icons.AutoMirrored.Filled.TrendingFlat
+    }
+    val tendenciaColor = when (historicoPeso.tendencia) {
+        "SUBINDO" -> colors.featureOrange
+        "DESCENDO" -> colors.featureGreen
+        else -> colors.textSecondary
+    }
+
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Icon(Icons.Filled.MonitorWeight, null, tint = colors.primary, modifier = Modifier.size(16.dp))
+            Text(
+                text = "EVOLUÇÃO DE PESO",
+                fontSize = 10.sp,
+                fontWeight = FontWeight.Bold,
+                letterSpacing = 1.sp,
+                color = colors.textSecondary
+            )
+        }
+        Spacer(modifier = Modifier.height(8.dp))
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(16.dp))
+                .background(colors.surface)
+                .border(1.dp, colors.inputBorder, RoundedCornerShape(16.dp))
+                .padding(16.dp)
+        ) {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column {
+                        Text(
+                            text = historicoPeso.pesoAtualKg?.let { "%.1f kg".format(it) } ?: "—",
+                            fontSize = 28.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = colors.primary
+                        )
+                        Text(
+                            text = "peso atual",
+                            fontSize = 11.sp,
+                            color = colors.textSecondary
+                        )
+                    }
+                    if (historicoPeso.tendencia != null) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Icon(tendenciaIcon, null, tint = tendenciaColor, modifier = Modifier.size(28.dp))
+                            Text(
+                                text = when (historicoPeso.tendencia) {
+                                    "SUBINDO" -> "subindo"
+                                    "DESCENDO" -> "descendo"
+                                    else -> "estável"
+                                },
+                                fontSize = 11.sp,
+                                color = tendenciaColor,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        }
+                    }
+                }
+
+                Box(
+                    modifier = Modifier.fillMaxWidth().height(1.dp).background(colors.inputBorder)
+                )
+
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
+                    PesoStatItem(
+                        value = historicoPeso.pesoMinimoKg?.let { "%.1f kg".format(it) } ?: "—",
+                        label = "mínimo"
+                    )
+                    Box(
+                        modifier = Modifier.width(1.dp).height(32.dp).background(colors.inputBorder)
+                    )
+                    PesoStatItem(
+                        value = historicoPeso.pesoMaximoKg?.let { "%.1f kg".format(it) } ?: "—",
+                        label = "máximo"
+                    )
+                    Box(
+                        modifier = Modifier.width(1.dp).height(32.dp).background(colors.inputBorder)
+                    )
+                    PesoStatItem(
+                        value = historicoPeso.variacaoTotalKg?.let {
+                            val prefix = if (it > 0) "+" else ""
+                            "$prefix%.1f kg".format(it)
+                        } ?: "—",
+                        label = "variação total"
+                    )
+                }
+
+                historicoPeso.variacaoUltimaSemanKg?.let { varSemana ->
+                    val prefix = if (varSemana > 0) "+" else ""
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(colors.primary.copy(alpha = 0.08f))
+                            .padding(horizontal = 12.dp, vertical = 8.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text("Variação última semana", fontSize = 12.sp, color = colors.textSecondary)
+                        Text(
+                            "$prefix%.1f kg".format(varSemana),
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = if (varSemana > 0) colors.featureOrange else if (varSemana < 0) colors.featureGreen else colors.textSecondary
+                        )
+                    }
+                }
+
+                Text(
+                    text = "${historicoPeso.totalRegistros} registro${if (historicoPeso.totalRegistros != 1) "s" else ""}",
+                    fontSize = 11.sp,
+                    color = colors.textSecondary
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun PesoStatItem(value: String, label: String) {
+    val colors = LocalAcademiaColors.current
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(value, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = colors.textPrimary)
+        Text(label, fontSize = 10.sp, color = colors.textSecondary)
     }
 }
 
