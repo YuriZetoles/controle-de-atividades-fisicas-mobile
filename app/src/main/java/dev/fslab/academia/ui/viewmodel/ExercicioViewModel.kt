@@ -102,6 +102,7 @@ class ExercicioViewModel : ViewModel() {
                     nome = f.busca.takeIf(String::isNotBlank),
                     grupoMuscular = f.grupoMuscular?.apiValue,
                     escopo = f.escopo.apiValue,
+                    tipoExercicio = f.tipoExercicio?.apiValue,
                     emUso = f.emUso,
                     comMidia = f.comMidia,
                     incluirMusculos = true,
@@ -109,7 +110,7 @@ class ExercicioViewModel : ViewModel() {
                 )
                 val pagina = resposta.data
                 val brutos = pagina?.dados.orEmpty()
-                val temFiltroClient = f.musculoIds.isNotEmpty() || f.aparelhoIds.isNotEmpty() || f.tipoExercicio != null
+                val temFiltroClient = f.musculoIds.isNotEmpty() || f.aparelhoIds.isNotEmpty()
 
                 var lista = brutos
                 if (f.musculoIds.isNotEmpty()) {
@@ -117,9 +118,6 @@ class ExercicioViewModel : ViewModel() {
                 }
                 if (f.aparelhoIds.isNotEmpty()) {
                     lista = lista.filter { ex -> ex.aparelhos.any { it.aparelhoId in f.aparelhoIds } }
-                }
-                if (f.tipoExercicio != null) {
-                    lista = lista.filter { ex -> ex.tipo == f.tipoExercicio }
                 }
 
                 _uiState.value = if (lista.isEmpty()) {

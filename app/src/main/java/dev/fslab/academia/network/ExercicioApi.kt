@@ -25,6 +25,7 @@ interface ExercicioApi {
         @Query("aluno_id") alunoId: String? = null,
         @Query("treinador_id") treinadorId: String? = null,
         @Query("escopo") escopo: String? = null,
+        @Query("tipo_exercicio") tipoExercicio: String? = null,
         @Query("em_uso") emUso: Boolean? = null,
         @Query("com_midia") comMidia: Boolean? = null,
         @Query("ordem_nome") ordemNome: String? = null,
