@@ -77,6 +77,7 @@ fun TreinadorHomeScreen(
     onNavigateTab: (String) -> Unit = {},
     onNotifications: () -> Unit = {},
     onLogout: () -> Unit = {},
+    chatBadgeCount: Int = 0,
     viewModel: TreinadorHomeViewModel = viewModel(),
     autoLoad: Boolean = true
 ) {
@@ -107,6 +108,7 @@ fun TreinadorHomeScreen(
         bottomBar = {
             TreinadorNavigationBar(
                 selectedIndex = navSelected,
+                chatBadgeCount = chatBadgeCount,
                 onItemSelected = { index ->
                     navSelected = index
                     val route = treinadorNavItems[index].route
@@ -151,7 +153,7 @@ fun TreinadorHomeScreen(
                         modifier = Modifier.padding(top = 2.dp)
                     )
                 }
-                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     IconButton(
                         onClick = onNotifications,
                         modifier = Modifier
