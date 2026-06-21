@@ -153,7 +153,7 @@ fun TreinadorHomeScreen(
                         modifier = Modifier.padding(top = 2.dp)
                     )
                 }
-                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     IconButton(
                         onClick = onNotifications,
                         modifier = Modifier
